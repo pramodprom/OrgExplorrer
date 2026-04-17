@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus - Home</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='5' r='2.5' fill='%232f6bff'/%3E%3Ccircle cx='5' cy='19' r='2.5' fill='%234aa3ff'/%3E%3Ccircle cx='19' cy='19' r='2.5' fill='%234aa3ff'/%3E%3Cline x1='12' y1='7.5' x2='5' y2='16.5' stroke='%232f6bff' stroke-width='1.5' opacity='0.6'/%3E%3Cline x1='12' y1='7.5' x2='19' y2='16.5' stroke='%232f6bff' stroke-width='1.5' opacity='0.6'/%3E%3C/svg%3E">
+    <meta name="description" content="Nexus connects to Microsoft 365 to give you instant access to your entire org structure — employee profiles, reporting chains, department breakdowns, and powerful data exploration.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+/* ==================== RESET & TOKENS ==================== */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+::selection{background:rgba(47,107,255,.22);color:var(--on-bg)}
+::-moz-selection{background:rgba(47,107,255,.22);color:var(--on-bg)}
+:root{
+    --bg:#f8f9fa;--surface:#ffffff;--surface-dim:#edeeef;
+    --on-bg:#191c1d;--on-surface:#3c4a42;
+    /* App-wide blue accent palette (matches static/app.css) */
+    --primary:#1b4fdc;--primary-container:#2f6bff;--primary-light:#8ab7ff;--primary-dim:#4aa3ff;
+    --secondary:#2656d6;--secondary-container:rgba(47,107,255,.16);
+    --outline:#6c7a71;--outline-variant:#bbcabf;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+
+/* ==================== DARK THEME ==================== */
+html[data-theme="dark"]{
+    --bg:#061226;
+    --surface: rgba(15, 23, 36, .92);
+    --surface-dim: rgba(255,255,255,.06);
+    --on-bg: rgba(234,240,255,.94);
+    --on-surface: rgba(234,240,255,.78);
+    --primary:#2f6bff;
+    --primary-container:#2f6bff;
+    --secondary:#4aa3ff;
+    --secondary-container: rgba(47,107,255,.18);
+    --outline:#7c8a84;
+    --outline-variant: rgba(255,255,255,.12);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--on-bg);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* Dark theme component tweaks */
+html[data-theme="dark"] .navbar{background:rgba(6,18,38,.72);border-bottom:1px solid rgba(255,255,255,.08)}
+html[data-theme="dark"] .nav-link{color:rgba(234,240,255,.78)}
+html[data-theme="dark"] .nav-link:hover{color:rgba(234,240,255,.94)}
+html[data-theme="dark"] .hero-sub{color:rgba(234,240,255,.74)}
+html[data-theme="dark"] .mockup-container{background:rgba(15, 23, 36, .92);box-shadow:0 30px 80px rgba(0,0,0,.45),0 4px 20px rgba(0,0,0,.25)}
+html[data-theme="dark"] .mockup-bar{background:rgba(255,255,255,.06)}
+html[data-theme="dark"] .mock-node{background:rgba(15, 23, 36, .92);border-color:rgba(255,255,255,.10)}
+html[data-theme="dark"] .mock-name{color:rgba(234,240,255,.94)}
+html[data-theme="dark"] .mock-role{color:rgba(234,240,255,.65)}
+html[data-theme="dark"] .feature-card{background:rgba(15, 23, 36, .92)}
+html[data-theme="dark"] .feature-desc{color:rgba(234,240,255,.68)}
+html[data-theme="dark"] .how{background:rgba(255,255,255,.02)}
+html[data-theme="dark"] .cta-inner{background:linear-gradient(135deg,rgba(47,107,255,.14),rgba(74,163,255,.06));border-color:rgba(47,107,255,.18)}
+html[data-theme="dark"] .footer{background:rgba(255,255,255,.02);border-top:1px solid rgba(255,255,255,.08)}
+html[data-theme="dark"] .footer-col a{color:rgba(234,240,255,.70)}
+html[data-theme="dark"] .footer-brand p,
+html[data-theme="dark"] .stat-label,
+html[data-theme="dark"] .section-sub,
+html[data-theme="dark"] .step-desc{color:rgba(234,240,255,.62)}
+
+/* Theme toggle button */
+.theme-toggle{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 14px;border-radius:12px;
+    border:1px solid rgba(0,0,0,.06);
+    background:rgba(255,255,255,.65);
+    color:var(--on-bg);
+    cursor:pointer;
+    transition:all .2s ease;
+    font-family:var(--font);
+    font-size:.82rem;
+    font-weight:600;
+}
+.theme-toggle:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(0,0,0,.06)}
+.theme-toggle .icon{width:18px;height:18px}
+html[data-theme="dark"] .theme-toggle{border-color:rgba(255,255,255,.10);background:rgba(255,255,255,.06);color:rgba(234,240,255,.92)}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+@keyframes pulse{0%,100%{opacity:.15}50%{opacity:.35}}
+@keyframes slideRight{from{transform:translateX(-40px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes scaleIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes nodeFloat1{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(12px,-15px) rotate(3deg)}}
+@keyframes nodeFloat2{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-10px,12px) rotate(-2deg)}}
+@keyframes nodeFloat3{0%,100%{transform:translate(0,0)}50%{transform:translate(8px,10px)}}
+@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes borderGlow{0%,100%{border-color:rgba(47,107,255,.15)}50%{border-color:rgba(47,107,255,.35)}}
+
+.fade-up{opacity:0;animation:fadeUp .7s ease-out forwards}
+.fade-up-d1{animation-delay:.1s}
+.fade-up-d2{animation-delay:.2s}
+.fade-up-d3{animation-delay:.3s}
+.fade-up-d4{animation-delay:.4s}
+.fade-up-d5{animation-delay:.5s}
+.fade-up-d6{animation-delay:.6s}
+
+/* ==================== NAVBAR ==================== */
+.navbar{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    padding:18px 48px;display:flex;align-items:center;justify-content:space-between;
+    background:rgba(248,249,250,.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid rgba(0,0,0,.04);
+    transition:all .3s ease;
+}
+.navbar.scrolled{padding:12px 48px;box-shadow:0 4px 30px rgba(0,0,0,.04)}
+
+.nav-left{display:flex;align-items:center;gap:10px}
+.nav-logo{width:28px;height:28px}
+.nav-brand{font-size:1.05rem;font-weight:700;color:var(--on-bg);letter-spacing:-.02em}
+
+.nav-links{display:flex;align-items:center;gap:32px}
+.nav-link{font-size:.82rem;font-weight:500;color:var(--on-surface);text-decoration:none;transition:color .2s;position:relative}
+.nav-link::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--primary-container);border-radius:2px;transition:width .25s ease}
+.nav-link:hover{color:var(--primary)}
+.nav-link:hover::after{width:100%}
+
+.nav-cta{
+    padding:10px 24px;background:linear-gradient(135deg,var(--primary-container),var(--primary));
+    color:#fff;font-family:var(--font);font-size:.82rem;font-weight:600;
+    border:none;border-radius:10px;cursor:pointer;text-decoration:none;
+    transition:all .25s ease;box-shadow:0 4px 16px rgba(47,107,255,.18);
+}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(47,107,255,.26)}
+
+/* ==================== LOGIN MODAL ==================== */
+.modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        z-index: 2000; display: none; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.3s ease;
+    }
+    .modal-backdrop.active { display: flex; opacity: 1; }
+    
+    .login-modal {
+        background: var(--surface); width: 100%; max-width: 440px;
+        border-radius: 32px; border: 1px solid var(--outline-variant);
+        box-shadow: 0 40px 100px rgba(0,0,0,0.15);
+        transform: translateY(20px); transition: transform 0.3s ease;
+        overflow: hidden; position: relative;
+    }
+    .modal-backdrop.active .login-modal { transform: translateY(0); }
+
+    .modal-close {
+        position: absolute; top: 20px; right: 20px; background: none; border: none;
+        color: var(--on-surface); cursor: pointer; padding: 8px; z-index: 10;
+        opacity: 0.6; transition: opacity 0.2s;
+    }
+    .modal-close:hover { opacity: 1; }
+
+    /* Re-using some login styles for the modal */
+    .modal-header { text-align: center; padding: 40px 40px 20px; }
+    .modal-header h2 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .modal-header p { font-size: 0.9rem; color: var(--on-surface); opacity: 0.7; }
+    
+    .modal-body { padding: 0 40px 40px; }
+    .field-group { margin-bottom: 20px; }
+    .field-label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 8px; opacity: 0.6; text-transform: uppercase; }
+    .field {
+        width: 100%; padding: 14px 18px; border-radius: 12px;
+        border: 1px solid var(--outline-variant); background: var(--bg);
+        color: var(--on-bg); font-family: var(--font); font-size: 0.9rem;
+    }
+    .btn-submit {
+        width: 100%; padding: 16px; border-radius: 12px; border: none;
+        background: linear-gradient(135deg, var(--primary-container), var(--primary));
+        color: #fff; font-weight: 700; cursor: pointer; transition: all 0.3s;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(47,107,255,0.2); }
+
+    /* ==================== HERO ==================== */
+.hero{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:120px 48px 80px;position:relative;overflow:hidden;
+}
+/* ==================== AESTHETIC BACKGROUND (THE LIVING NETWORK) ==================== */
+.living-network-bg { position: fixed; inset: 0; z-index: -1; background-color: var(--bg); overflow: hidden; }
+.aurora-sweep { position: absolute; top: -20%; left: -10%; width: 140%; height: 100%; background: radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.08) 0%, rgba(0, 108, 73, 0.03) 40%, transparent 70%); filter: blur(80px); transform: skewY(-5deg); pointer-events: none; }
+.network-mesh { position: absolute; inset: 0; background-image: linear-gradient(rgba(16, 185, 129, 0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.45) 1px, transparent 1px); background-size: 60px 60px; mask-image: radial-gradient(ellipse at top left, black 40%, transparent 90%); -webkit-mask-image: radial-gradient(ellipse at top left, black 40%, transparent 90%); pointer-events: none; }
+.topographic-accent { position: absolute; top: 0; right: 0; width: 600px; height: 600px; background-image: url("data:image/svg+xml,%3Csvg width='400' height='400' viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 100 Q 100 50 200 100 T 400 100' stroke='%2310b981' stroke-width='0.5' fill='none' opacity='0.1'/%3E%3Cpath d='M0 150 Q 100 100 200 150 T 400 150' stroke='%2310b981' stroke-width='0.5' fill='none' opacity='0.08'/%3E%3Cpath d='M0 200 Q 100 150 200 200 T 400 200' stroke='%2310b981' stroke-width='0.5' fill='none' opacity='0.06'/%3E%3Cpath d='M0 250 Q 100 200 200 250 T 400 250' stroke='%2310b981' stroke-width='0.5' fill='none' opacity='0.04'/%3E%3C/svg%3E"); opacity: 0.4; mask-image: linear-gradient(to bottom left, black, transparent); pointer-events: none; }
+.hero-content{position:relative;z-index:2;max-width:1200px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+
+.hero-text{max-width:560px}
+.hero-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 16px;border-radius:20px;
+    background:rgba(47,107,255,.08);border:1px solid rgba(47,107,255,.15);
+    font-size:.72rem;font-weight:600;color:var(--primary);
+    text-transform:uppercase;letter-spacing:.06em;margin-bottom:28px;
+}
+.hero-badge-dot{width:6px;height:6px;background:var(--primary-container);border-radius:50%;animation:pulse 2s infinite}
+
+.hero-h1{
+    font-size:3.4rem;font-weight:800;line-height:1.08;letter-spacing:-.03em;
+    color:var(--on-bg);margin-bottom:24px;position:relative;z-index:10;
+}
+.hero-h1 em{
+    font-style:normal;
+    background:linear-gradient(135deg,var(--primary-container),var(--primary));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    padding-bottom:0.1em;margin-bottom:-0.1em;
+}
+.hero-sub{font-size:1.05rem;line-height:1.65;color:#555;font-weight:400;margin-bottom:36px;max-width:480px;position:relative;z-index:1;}
+
+.hero-actions{display:flex;gap:14px;align-items:center}
+.btn-primary{
+    padding:14px 32px;background:linear-gradient(135deg,var(--primary-container),var(--primary));
+    color:#fff;font-family:var(--font);font-size:.88rem;font-weight:600;
+    border:none;border-radius:12px;cursor:pointer;text-decoration:none;
+    transition:all .3s ease;box-shadow:0 6px 24px rgba(47,107,255,.22);
+    display:inline-flex;align-items:center;gap:8px;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(47,107,255,.28)}
+.btn-secondary{
+    padding:14px 28px;background:transparent;color:var(--primary);
+    font-family:var(--font);font-size:.88rem;font-weight:600;
+    border:2px solid rgba(47,107,255,.25);border-radius:12px;cursor:pointer;text-decoration:none;
+    transition:all .3s ease;display:inline-flex;align-items:center;gap:8px;
+}
+.btn-secondary:hover{border-color:var(--primary-container);background:rgba(47,107,255,.04);transform:translateY(-2px)}
+
+.hero-trust{display:flex;align-items:center;gap:12px;margin-top:36px;font-size:.78rem;color:#888}
+.trust-avatars{display:flex}
+.trust-avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--bg);margin-left:-8px;display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;color:#fff}
+.trust-avatar:first-child{margin-left:0}
+
+/* Hero visual — org chart mockup */
+.hero-visual{position:relative;display:flex;justify-content:center;align-items:center}
+.mockup-container{
+    position:relative;width:100%;max-width:520px;aspect-ratio:4/3;
+    background:var(--surface);border-radius:20px;
+    box-shadow:0 30px 80px rgba(0,0,0,.06),0 4px 20px rgba(0,0,0,.03);
+    overflow:hidden;animation:scaleIn .8s ease-out .3s forwards;opacity:0;
+}
+.mockup-bar{height:36px;background:var(--surface-dim);display:flex;align-items:center;padding:0 14px;gap:6px}
+.mockup-dot{width:8px;height:8px;border-radius:50%}
+.mockup-dot-r{background:#ff6058}
+.mockup-dot-y{background:#ffbd2e}
+.mockup-dot-g{background:#27c93f}
+.mockup-body{padding:24px;position:relative;height:calc(100% - 36px);overflow:hidden}
+
+/* Org chart nodes inside mockup */
+.mock-node{
+    position:absolute;background:var(--surface);border:1px solid rgba(0,0,0,.06);
+    border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;
+    box-shadow:0 4px 16px rgba(0,0,0,.04);transition:all .3s ease;
+}
+.mock-node:hover{transform:scale(1.04);box-shadow:0 8px 24px rgba(0,0,0,.07)}
+.mock-node.target{border-color:var(--primary-container);background:rgba(47,107,255,.04)}
+.mock-avatar{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#fff;flex-shrink:0}
+.mock-info{display:flex;flex-direction:column}
+.mock-name{font-size:.68rem;font-weight:600;color:var(--on-bg)}
+.mock-role{font-size:.55rem;color:#888;margin-top:1px}
+
+.mock-line{position:absolute;background:var(--primary-dim);opacity:.3;z-index:0}
+.mock-line-v{width:1.5px}
+.mock-line-h{height:1.5px}
+
+/* Floating stat card */
+.float-stat{
+    position:absolute;z-index:5;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);
+    border-radius:14px;padding:14px 18px;box-shadow:0 12px 40px rgba(0,0,0,.06);
+    border:1px solid rgba(47,107,255,.1);
+    animation:borderGlow 4s ease-in-out infinite;
+}
+.float-stat-num{font-size:1.4rem;font-weight:800;color:var(--primary);letter-spacing:-.02em}
+.float-stat-label{font-size:.62rem;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+
+/* ==================== STATS BAR ==================== */
+.stats-bar{
+    padding:48px;background:var(--surface);
+}
+.stats-inner{
+    max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+}
+.stat-item{text-align:center;padding:20px 0}
+.stat-item+.stat-item{border-left:1px solid rgba(0,0,0,.06)}
+.stat-num{font-size:2rem;font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,var(--primary-container),var(--primary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:.72rem;color:#888;font-weight:500;margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+
+/* ==================== FEATURES ==================== */
+.features{padding:100px 48px;position:relative}
+.features-inner{max-width:1100px;margin:0 auto}
+.section-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 14px;border-radius:16px;background:rgba(47,107,255,.06);
+    font-size:.68rem;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:16px;
+}
+.section-h2{font-size:2.4rem;font-weight:800;letter-spacing:-.02em;color:var(--on-bg);margin-bottom:12px;line-height:1.15}
+.section-sub{font-size:1rem;color:#666;line-height:1.6;max-width:520px;margin-bottom:56px}
+
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature-card{
+    background:var(--surface);border-radius:18px;padding:32px 28px;
+    transition:all .35s ease;cursor:default;position:relative;overflow:hidden;
+    border:1px solid transparent;
+}
+.feature-card::before{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(135deg,rgba(47,107,255,.03),transparent);
+    opacity:0;transition:opacity .3s;
+}
+.feature-card:hover{transform:translateY(-6px);border-color:rgba(47,107,255,.12)}
+.feature-card:hover::before{opacity:1}
+.feature-icon{
+    width:48px;height:48px;border-radius:14px;
+    background:rgba(47,107,255,.08);display:flex;align-items:center;justify-content:center;
+    margin-bottom:20px;position:relative;z-index:1;
+}
+.feature-icon svg{width:22px;height:22px;color:var(--primary);stroke:var(--primary);fill:none;stroke-width:1.8}
+.feature-title{font-size:.95rem;font-weight:700;color:var(--on-bg);margin-bottom:10px;position:relative;z-index:1}
+.feature-desc{font-size:.82rem;color:#777;line-height:1.6;position:relative;z-index:1}
+
+/* ==================== HOW IT WORKS ==================== */
+.how{padding:100px 48px;background:var(--surface)}
+.how-inner{max-width:1100px;margin:0 auto}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;position:relative}
+.steps-grid::before{
+    content:'';position:absolute;top:40px;left:16.66%;right:16.66%;height:2px;
+    background:linear-gradient(90deg,transparent,var(--primary-dim),transparent);opacity:.2;
+}
+.step-card{text-align:center;position:relative;padding:20px}
+.step-num{
+    width:56px;height:56px;border-radius:16px;margin:0 auto 20px;
+    background:linear-gradient(135deg,var(--primary-container),var(--primary));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;font-weight:800;position:relative;z-index:2;
+    box-shadow:0 8px 24px rgba(47,107,255,.18);
+}
+.step-title{font-size:1rem;font-weight:700;color:var(--on-bg);margin-bottom:10px}
+.step-desc{font-size:.82rem;color:#777;line-height:1.55;max-width:280px;margin:0 auto}
+
+/* ==================== CTA ==================== */
+.cta-section{padding:100px 48px;position:relative;overflow:hidden}
+.cta-inner{
+    max-width:800px;margin:0 auto;text-align:center;
+    background:linear-gradient(135deg,rgba(47,107,255,.06),rgba(74,163,255,.04));
+    border-radius:28px;padding:72px 48px;position:relative;
+    border:1px solid rgba(47,107,255,.1);
+}
+.cta-inner::before{
+    content:'';position:absolute;inset:0;border-radius:28px;
+    background:radial-gradient(circle at 30% 0%,rgba(47,107,255,.08),transparent 60%);
+}
+.cta-inner h2{font-size:2.2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:14px;position:relative}
+.cta-inner p{font-size:1rem;color:#666;margin-bottom:36px;position:relative;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.6}
+.cta-inner .btn-primary{position:relative}
+
+/* ==================== FOOTER ==================== */
+.footer{padding:56px 48px 32px;background:var(--surface);border-top:1px solid rgba(0,0,0,.04)}
+.footer-inner{max-width:1100px;margin:0 auto}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
+.footer-brand p{font-size:.82rem;color:#888;line-height:1.6;margin-top:10px;max-width:260px}
+.footer-col h4{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin-bottom:14px}
+.footer-col a{display:block;font-size:.82rem;color:#666;text-decoration:none;margin-bottom:8px;transition:color .2s}
+.footer-col a:hover{color:var(--primary)}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;border-top:1px solid rgba(0,0,0,.06);font-size:.72rem;color:#aaa}
+.footer-bottom a{color:#888;text-decoration:none;margin-left:16px}
+.footer-bottom a:hover{color:var(--primary)}
+
+/* ==================== RESPONSIVE ==================== */
+@media(max-width:900px){
+    .hero-content{grid-template-columns:1fr;text-align:center}
+    .hero-text{max-width:100%}
+    .hero-sub{margin-left:auto;margin-right:auto}
+    .hero-actions{justify-content:center;flex-wrap:wrap}
+    .hero-trust{justify-content:center}
+    .hero-visual{display:none}
+    .hero-h1{font-size:2.4rem}
+    .features-grid{grid-template-columns:1fr 1fr}
+    .stats-inner{grid-template-columns:repeat(2,1fr)}
+    .stat-item:nth-child(3){border-left:none}
+    .steps-grid{grid-template-columns:1fr}
+    .steps-grid::before{display:none}
+    .footer-top{grid-template-columns:1fr 1fr}
+    .navbar{padding:14px 20px}
+    .nav-links{gap:16px}
+}
+@media(max-width:600px){
+    .hero{padding:100px 20px 60px}
+    .features,.how,.cta-section{padding:60px 20px}
+    .hero-h1{font-size:2rem}
+    .features-grid{grid-template-columns:1fr}
+    .stats-inner{grid-template-columns:1fr}
+    .stat-item+.stat-item{border-left:none;border-top:1px solid rgba(0,0,0,.06)}
+    .footer-top{grid-template-columns:1fr}
+    .section-h2{font-size:1.8rem}
+}
+    </style>
+</head>
+<body>
+
+<!-- ==================== LOGOUT / FLASH MESSAGES ==================== -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Automatically open the login modal if there are flash messages
+        const backdrop = document.getElementById('loginModalBackdrop');
+        if (backdrop) {
+            backdrop.classList.add('active');
+            backdrop.style.display = 'flex';
+            void backdrop.offsetWidth;
+            backdrop.style.opacity = '1';
+            document.body.style.overflow = 'hidden';
+            
+            // Highlight the error inside the modal
+            const errorContainer = document.getElementById('modalErrorContainer');
+            if (errorContainer) {
+                errorContainer.style.display = 'block';
+                errorContainer.textContent = '{{ messages[0] }}';
+            }
+        }
+      });
+    </script>
+  {% endif %}
+{% endwith %}
+
+<!-- ==================== LOGIN MODAL ==================== -->
+<div class="modal-backdrop" id="loginModalBackdrop">
+    <div class="login-modal" id="loginModalContent">
+        <button class="modal-close" id="closeLoginModal" aria-label="Close modal">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        
+        <div class="modal-header">
+            <h2>Welcome Back</h2>
+            <p>Enter your credentials to enter Nexus</p>
+        </div>
+
+        <div class="modal-body">
+            <div id="modalErrorContainer" class="flash-error" style="display:none; background: rgba(239, 68, 68, 0.1); color: #fc5c5c; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 700; margin-bottom: 20px; text-align: center; border: 1px solid rgba(239, 68, 68, 0.2);"></div>
+            
+            <form action="{{ url_for('login') }}" method="POST">
+                <input type="hidden" name="return_to" id="loginReturnTo">
+                <div class="field-group">
+                    <label class="field-label">Work Email</label>
+                    <input class="field" type="email" name="email" placeholder="john.doe@company.com" required autocomplete="email">
+                </div>
+                
+                <div class="field-group">
+                    <label class="field-label">Access Token</label>
+                    <input class="field" type="password" name="token" placeholder="Bearer eyJ0e..." required>
+                </div>
+                
+                <button type="submit" class="btn-submit">
+                    Enter Workspace
+                </button>
+            </form>
+            
+            <div style="margin-top: 24px; text-align: center; color: var(--on-surface); opacity: 0.5; font-size: 0.75rem;">
+                Authorized personnel only.
+                <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="font-size:0.8rem;padding:8px 12px;border-radius:10px;margin-left:12px;">
+                    Get Microsoft Graph Access Token
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== NAVBAR ==================== -->
+<nav class="navbar" id="navbar">
+    <div class="nav-left">
+        <svg class="nav-logo" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="5" r="2.5" fill="#2f6bff"/>
+            <circle cx="5" cy="19" r="2.5" fill="#4aa3ff"/>
+            <circle cx="19" cy="19" r="2.5" fill="#4aa3ff"/>
+            <line x1="12" y1="7.5" x2="5" y2="16.5" stroke="#2f6bff" stroke-width="1.5" opacity="0.6"/>
+            <line x1="12" y1="7.5" x2="19" y2="16.5" stroke="#2f6bff" stroke-width="1.5" opacity="0.6"/>
+        </svg>
+        <span class="nav-brand">Nexus</span>
+    </div>
+    <div class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how" class="nav-link">How It Works</a>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle theme">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"></path>
+            </svg>
+            <span class="label">Dark</span>
+        </button>
+        <button id="openLoginBtn" class="nav-cta">Sign In &rarr;</button>
+    </div>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero">
+    <!-- Living Network Aesthetic Background -->
+    <div class="living-network-bg">
+        <div class="aurora-sweep"></div>
+        <div class="network-mesh"></div>
+        <div class="topographic-accent"></div>
+    </div>
+
+    <div class="hero-content">
+        <div class="hero-text">
+            <div class="hero-badge fade-up"><span class="hero-badge-dot"></span> Enterprise People Intelligence</div>
+            <h1 class="hero-h1 fade-up fade-up-d1"><span style="position:relative; z-index:2;">Your Organization,</span><br><em style="position:relative; z-index:1;">Mapped & Understood</em></h1>
+            <p class="hero-sub fade-up fade-up-d2">Nexus connects to Microsoft 365 to give you instant access to your entire org structure &mdash; profiles, reporting chains, department breakdowns, and powerful data analytics.</p>
+            <div class="hero-actions fade-up fade-up-d3">
+                <a href="/login" class="btn-primary">
+                    Get Started
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
+                <a href="#how" class="btn-secondary">See How It Works</a>
+            </div>
+            <div class="hero-trust fade-up fade-up-d4">
+                <div class="trust-avatars">
+                    <div class="trust-avatar" style="background:#10b981">SK</div>
+                    <div class="trust-avatar" style="background:#059669">MT</div>
+                    <div class="trust-avatar" style="background:#047857">ER</div>
+                    <div class="trust-avatar" style="background:#065f46">JP</div>
+                </div>
+                <span>Trusted by enterprise HR & IT teams</span>
+            </div>
+        </div>
+
+        <div class="hero-visual fade-up fade-up-d3">
+            <div class="mockup-container">
+                <div class="mockup-bar">
+                    <span class="mockup-dot mockup-dot-r"></span>
+                    <span class="mockup-dot mockup-dot-y"></span>
+                    <span class="mockup-dot mockup-dot-g"></span>
+                </div>
+                <div class="mockup-body">
+                    <!-- Connecting lines -->
+                    <div class="mock-line mock-line-v" style="left:50%;top:60px;height:40px"></div>
+                    <div class="mock-line mock-line-h" style="top:100px;left:20%;width:60%"></div>
+                    <div class="mock-line mock-line-v" style="left:20%;top:100px;height:40px"></div>
+                    <div class="mock-line mock-line-v" style="left:50%;top:100px;height:40px"></div>
+                    <div class="mock-line mock-line-v" style="left:80%;top:100px;height:40px"></div>
+
+                    <!-- Nodes -->
+                    <div class="mock-node target" style="left:50%;top:14px;transform:translateX(-50%)">
+                        <div class="mock-avatar" style="background:linear-gradient(135deg,#10b981,#059669)">SK</div>
+                        <div class="mock-info"><span class="mock-name">Sarah Jenkins</span><span class="mock-role">CEO & Founder</span></div>
+                    </div>
+                    <div class="mock-node" style="left:4%;top:140px">
+                        <div class="mock-avatar" style="background:#6366f1">MT</div>
+                        <div class="mock-info"><span class="mock-name">Marcus Thorne</span><span class="mock-role">Chief Operations</span></div>
+                    </div>
+                    <div class="mock-node" style="left:35%;top:140px">
+                        <div class="mock-avatar" style="background:#f59e0b">ER</div>
+                        <div class="mock-info"><span class="mock-name">Elena Rodriguez</span><span class="mock-role">CTO</span></div>
+                    </div>
+                    <div class="mock-node" style="left:66%;top:140px">
+                        <div class="mock-avatar" style="background:#ec4899">JP</div>
+                        <div class="mock-info"><span class="mock-name">James Park</span><span class="mock-role">VP Engineering</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="float-stat" style="bottom:10%;right:-10px;animation:nodeFloat2 6s ease-in-out infinite">
+                <div class="float-stat-num">35,226</div>
+                <div class="float-stat-label">Employees Mapped</div>
+            </div>
+            <div class="float-stat" style="top:15%;left:-20px;animation:nodeFloat1 8s ease-in-out infinite">
+                <div class="float-stat-num">98%</div>
+                <div class="float-stat-label">Data Integrity</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== STATS ==================== -->
+<div class="stats-bar">
+    <div class="stats-inner">
+        <div class="stat-item fade-up"><div class="stat-num">35K+</div><div class="stat-label">Employees Mapped</div></div>
+        <div class="stat-item fade-up fade-up-d1"><div class="stat-num">500+</div><div class="stat-label">Departments</div></div>
+        <div class="stat-item fade-up fade-up-d2"><div class="stat-num">98%</div><div class="stat-label">Data Integrity</div></div>
+        <div class="stat-item fade-up fade-up-d3"><div class="stat-num">&lt;2s</div><div class="stat-label">Avg Load Time</div></div>
+    </div>
+</div>
+
+<!-- ==================== FEATURES ==================== -->
+<section class="features" id="features">
+    <div class="features-inner">
+        <div class="section-badge fade-up">&#10022; Core Features</div>
+        <h2 class="section-h2 fade-up fade-up-d1">Everything you need to<br>understand your people</h2>
+        <p class="section-sub fade-up fade-up-d2">From org charts to deep data analytics, Nexus gives HR and IT leaders the full picture.</p>
+        <div class="features-grid">
+            <div class="feature-card fade-up fade-up-d1">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="feature-title">Org Explorer</div>
+                <div class="feature-desc">Browse your entire organization with smart filtering, column customization, and instant search across 30+ employee attributes.</div>
+            </div>
+            <div class="feature-card fade-up fade-up-d2">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/><path d="m20.49 3.51-4.24 4.24m-8.5 8.5L3.51 20.49m16.98 0-4.24-4.24m-8.5-8.5L3.51 3.51"/></svg>
+                </div>
+                <div class="feature-title">Hierarchy Mapping</div>
+                <div class="feature-desc">Visualize upward chains and full org trees. See the complete reporting structure from any employee to the CEO.</div>
+            </div>
+            <div class="feature-card fade-up fade-up-d3">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+                </div>
+                <div class="feature-title">Rich Profiles</div>
+                <div class="feature-desc">Deep employee profiles with job history, contact details, department info, account status — all pulled live from Microsoft 365.</div>
+            </div>
+            <div class="feature-card fade-up fade-up-d4">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <div class="feature-title">Export Anywhere</div>
+                <div class="feature-desc">Download org data as CSV or Excel with one click. Export hierarchy views as high-res images for presentations.</div>
+            </div>
+            <div class="feature-card fade-up fade-up-d5">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                </div>
+                <div class="feature-title">Smart Caching</div>
+                <div class="feature-desc">Background prefetching loads your entire org on login. Switch between pages with zero wait — data is always ready.</div>
+            </div>
+            <div class="feature-card fade-up fade-up-d6">
+                <div class="feature-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div class="feature-title">Enterprise Secure</div>
+                <div class="feature-desc">OAuth 2.0 via Microsoft identity platform. No passwords stored. Token-based sessions with automatic refresh.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== HOW IT WORKS ==================== -->
+<section class="how" id="how">
+    <div class="how-inner">
+        <div class="section-badge fade-up">&rarr; How It Works</div>
+        <h2 class="section-h2 fade-up fade-up-d1">Up and running in<br>under a minute</h2>
+        <p class="section-sub fade-up fade-up-d2">No complex setup. No database configuration. Just authenticate and explore.</p>
+        <div class="steps-grid">
+            <div class="step-card fade-up fade-up-d1">
+                <div class="step-num">1</div>
+                <div class="step-title">Sign in with Microsoft</div>
+                <div class="step-desc">Authenticate with your Microsoft 365 account using secure OAuth. One click, no passwords to manage.</div>
+            </div>
+            <div class="step-card fade-up fade-up-d3">
+                <div class="step-num">2</div>
+                <div class="step-title">Data Loads Automatically</div>
+                <div class="step-desc">Nexus starts caching your org data in the background. Browse the app while it works — no waiting required.</div>
+            </div>
+            <div class="step-card fade-up fade-up-d5">
+                <div class="step-num">3</div>
+                <div class="step-title">Explore & Export</div>
+                <div class="step-desc">Search employees, view hierarchies, filter by department, and export reports. Your entire org intelligence, instant.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="cta-section">
+    <div class="cta-inner fade-up">
+        <h2>Ready to understand<br>your organization?</h2>
+        <p>Join enterprise teams who use Nexus to map, explore, and analyze their people data in real time.</p>
+        <a href="/login" class="btn-primary" style="font-size:.95rem;padding:16px 40px">
+            Get Started Now
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 19"/></svg>
+        </a>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="footer">
+    <div class="footer-inner">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <div class="nav-left" style="margin-bottom:4px">
+                    <svg class="nav-logo" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="5" r="2.5" fill="#10b981"/>
+                        <circle cx="5" cy="19" r="2.5" fill="#059669"/>
+                        <circle cx="19" cy="19" r="2.5" fill="#059669"/>
+                        <line x1="12" y1="7.5" x2="5" y2="16.5" stroke="#10b981" stroke-width="1.5" opacity="0.6"/>
+                        <line x1="12" y1="7.5" x2="19" y2="16.5" stroke="#10b981" stroke-width="1.5" opacity="0.6"/>
+                    </svg>
+                    <span class="nav-brand">Nexus</span>
+                </div>
+                <p>Enterprise People Intelligence. Map, explore, and understand your organization like never before.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Product</h4>
+                <a href="#features">Features</a>
+                <a href="#how">How It Works</a>
+                <a href="/login">Get Started</a>
+            </div>
+            <div class="footer-col">
+                <h4>Platform</h4>
+                <a href="/login">Org Explorer</a>
+                <a href="/login">Profile Search</a>
+                <a href="/login">Hierarchy View</a>
+            </div>
+            <div class="footer-col">
+                <h4>Resources</h4>
+                <a href="#">Documentation</a>
+                <a href="#">Help Center</a>
+                <a href="#">Security</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; <script>document.write(new Date().getFullYear())</script> Nexus &mdash; The Intelligent Ecosystem.</span>
+            <div>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+// Theme: use the shared app key ('theme') and default to dark like other pages
+(function(){
+    const STORAGE_KEY = 'theme';
+    const root = document.documentElement;
+    let saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch { saved = null; }
+    const initial = (saved === 'light' || saved === 'dark') ? saved : 'dark';
+    root.setAttribute('data-theme', initial);
+})();
+
+// Navbar scroll effect
+window.addEventListener('scroll',()=>{
+    document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>30);
+});
+
+// Theme toggle button
+(function(){
+    const STORAGE_KEY = 'theme';
+    const btn = document.getElementById('themeToggle');
+    if(!btn) return;
+
+    const label = btn.querySelector('.label');
+    const icon = btn.querySelector('svg');
+
+    const updateUI = () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if(label) label.textContent = isDark ? 'Light' : 'Dark';
+        btn.setAttribute('aria-pressed', String(isDark));
+        btn.setAttribute('title', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+        // Swap icon (moon when offering dark, sun when offering light)
+        if(icon){
+            icon.innerHTML = isDark
+                ? '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="M4.93 4.93l1.41 1.41"></path><path d="M17.66 17.66l1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="M4.93 19.07l1.41-1.41"></path><path d="M17.66 6.34l1.41-1.41"></path>'
+                : '<path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"></path>';
+        }
+    };
+
+    updateUI();
+    btn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem(STORAGE_KEY, next);
+        updateUI();
+    });
+})();
+
+// Intersection Observer for fade-up animations
+const io=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.style.animationPlayState='running';io.unobserve(e.target)}});
+},{threshold:.15});
+document.querySelectorAll('.fade-up').forEach(el=>{el.style.animationPlayState='paused';io.observe(el)});
+
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    a.addEventListener('click',e=>{
+        e.preventDefault();
+        const t=document.querySelector(a.getAttribute('href'));
+        if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+});
+
+// Login Modal Logic
+(function() {
+        const backdrop = document.getElementById('loginModalBackdrop');
+        const openBtns = [
+            document.getElementById('openLoginBtn'),
+            ...document.querySelectorAll('a[href="/login"]') // Catch 'Get Started' and other links
+        ];
+        const closeBtn = document.getElementById('closeLoginModal');
+
+        openBtns.forEach(btn => {
+            if (!btn) return;
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Track where to return after login
+                const returnToInput = document.getElementById('loginReturnTo');
+                if (returnToInput) {
+                    const fallback = "{{ url_for('dashboard') }}";
+                    // If we have a stored 'next' from a timeout redirect, use that.
+                    // Otherwise, use current page.
+                    const next = sessionStorage.getItem("nextAfterTokenRefresh");
+                    returnToInput.value = next || window.location.pathname + window.location.search;
+                }
+
+                backdrop.classList.add('active');
+                backdrop.style.display = 'flex';
+                // Trigger reflow for animation
+                void backdrop.offsetWidth;
+                backdrop.style.opacity = '1';
+                document.body.style.overflow = 'hidden';
+            });
+        });
+
+        const close = () => {
+            backdrop.style.opacity = '0';
+            setTimeout(() => {
+                backdrop.classList.remove('active');
+                backdrop.style.display = 'none';
+                document.body.style.overflow = '';
+            }, 300);
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', close);
+
+        // Auto-open if #login anchor is present
+        if (window.location.hash === '#login') {
+            const openEvent = new Event('click');
+            const targetBtn = document.getElementById('openLoginBtn');
+            if (targetBtn) targetBtn.dispatchEvent(openEvent);
+        }
+
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) close();
+        });
+
+        // ESC key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && backdrop.classList.contains('active')) close();
+        });
+    })();
+</script>
+
+</body>
+</html>

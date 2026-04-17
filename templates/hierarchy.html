@@ -1,0 +1,1994 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  
+  <title>Organization Hierarchy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <!-- Theme (dark/light) applied ASAP to avoid flash -->
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+
+  <style>
+    /* ==================== HIERARCHY REFRESH (Match Employees) ==================== */
+    :root {
+      --dash-primary: #2f6bff;
+      --dash-primary-rgb: 47, 107, 255;
+      --surface: var(--bg1);
+      --surface-dim: var(--stroke);
+    }
+
+    /* Light theme specific adjustments */
+    html[data-theme="light"] :root {
+      --surface: #ffffff;
+      --surface-dim: rgba(8, 18, 38, 0.08);
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* Page Hero Area */
+    .page-hero {
+      padding: 60px 0 40px;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: rgba(var(--dash-primary-rgb), 0.1);
+      border: 1px solid rgba(var(--dash-primary-rgb), 0.2);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dash-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+
+    .page-title {
+      font-size: clamp(2.2rem, 4vw, 3rem);
+      font-weight: 850;
+      line-height: 1.1;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+      color: var(--text-strong);
+    }
+    
+    .title-accent { color: var(--dash-primary); }
+
+    .page-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-soft);
+      opacity: 0.8;
+      max-width: 700px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    /* Layout: Top Controls Grid */
+    .top-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      margin-bottom: 32px;
+      align-items: stretch;
+    }
+    @media (max-width: 1100px) { .top-grid { grid-template-columns: 1fr; } }
+
+    /* High-Fidelity Cards */
+    .glass-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-dim);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    html[data-theme="dark"] .glass-card {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.08);
+    }
+
+    .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+    /* Live search suggestions */
+    .searchWrap{ position:relative; }
+    .suggestions{
+      position:absolute;
+      left:0; right:0;
+      top: 100%;
+      z-index: 10000;
+      background: #ffffff;
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+      overflow:hidden;
+      max-height: 380px;
+      overflow-y:auto;
+      margin-top: 4px;
+    }
+    html[data-theme="dark"] .suggestions {
+      background: #1e2332;
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    }
+    .suggestionItem{
+      padding: 10px 12px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .suggestionItem:hover{ background: rgba(var(--dash-primary-rgb), 0.1); }
+    .suggestionName{ font-weight: 700; color: var(--text-strong); }
+    .suggestionMeta{ color: var(--text-muted); font-size: 13px; }
+
+    .search-card{ margin-top: 14px; position: relative; z-index: 50; }
+    .search-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .search-input-group {
+      flex: 1;
+      min-width: 300px;
+    }
+    
+    .search-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .suggestions{
+      position:absolute;
+      left:0; right:0;
+      top: 100%;
+      z-index: 10000;
+      background: #ffffff;
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+      overflow:hidden;
+      max-height: 380px;
+      overflow-y:auto;
+      margin-top: 4px;
+    }
+    html[data-theme="dark"] .suggestions {
+      background: #1e2332;
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    }
+    .suggestionItem{
+      padding: 12px 16px;
+      cursor:pointer;
+      display:grid;
+      grid-template-columns: 40px 1fr;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+      border-bottom: 1px solid rgba(var(--dash-primary-rgb), 0.04);
+    }
+    .suggestionItem:last-child { border-bottom: none; }
+    .suggestionItem:hover{ background: rgba(var(--dash-primary-rgb), 0.08); }
+    
+    .suggestion-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(var(--dash-primary-rgb), 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .suggestion-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .suggestion-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+    .suggestionName{ 
+      font-weight: 700; 
+      color: var(--text-strong); 
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .suggestionMeta{ 
+      color: var(--text-muted); 
+      font-size: 0.8rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-card{ margin-top: 0; position: relative; z-index: 50; }
+    
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+      opacity: 0.7;
+    }
+
+    .field-wrapper {
+      position: relative;
+    }
+
+    .field-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .modern-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 14px 16px 14px 44px;
+      color: var(--text-strong);
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+    .modern-input:focus {
+      outline: none;
+      border-color: var(--dash-primary);
+      box-shadow: 0 0 0 4px rgba(var(--dash-primary-rgb), 0.1);
+    }
+
+    /* Action Buttons (Employees Style) */
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--dash-primary);
+      color: #fff;
+      box-shadow: 0 8px 25px rgba(var(--dash-primary-rgb), 0.25);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 35px rgba(var(--dash-primary-rgb), 0.35);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--stroke);
+      color: var(--text-soft);
+    }
+    .btn-ghost:hover {
+      background: var(--surface-dim);
+      color: var(--text-strong);
+    }
+
+    .stat-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .stat-card .icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(var(--dash-primary-rgb), 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--dash-primary);
+    }
+    .stat-label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 2rem; font-weight: 850; color: var(--text-strong); line-height: 1; }
+
+    .seg{
+      display:inline-flex;
+      background: var(--bg);
+      border:1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .seg label{ display:inline-flex; align-items:center; cursor:pointer; user-select:none; }
+    .seg input{ display:none; }
+    .seg span{
+      display:inline-flex; align-items:center;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-soft);
+      transition: all 0.2s ease;
+    }
+    .seg input:checked + span{
+      background: var(--dash-primary);
+      color: #fff;
+    }
+
+    /* compact field picker */
+    .fields-picker{ position:relative; z-index: 2000; }
+    .picker-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: transparent;
+      border: 1px solid var(--stroke);
+      cursor: pointer;
+      color: var(--text-soft);
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .picker-toggle:hover {
+      background: var(--surface-dim);
+      color: var(--text-strong);
+    }
+    .picker-menu{
+      position:absolute;
+      right:0;
+      top: 100%;
+      width: min(360px, 92vw);
+      background: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid var(--stroke);
+      box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+      z-index: 99999;
+      margin-top: 8px;
+    }
+    html[data-theme="dark"] .picker-menu {
+       background: #1e2332;
+       border-color: rgba(255, 255, 255, 0.15);
+       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    }
+    .picker-search {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--stroke);
+      border-radius: 10px;
+      color: var(--text-strong);
+    }
+    .picker-list{
+      max-height: 260px;
+      overflow:auto;
+      border:1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 6px;
+      background: var(--bg);
+    }
+    .picker-list label{
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor:pointer;
+      color: var(--text-soft);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .picker-list label:hover{ background: rgba(var(--dash-primary-rgb), 0.05); color: var(--text-strong); }
+    .picker-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    #selectedChips{ margin-top: 12px; }
+
+    .content {
+      margin-top: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 100%;
+    }
+
+    /* Results area */
+    .results-card {
+      width: 100%;
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+      overflow: visible !important; 
+      padding:  0;
+      border-radius: 28px;
+      background: var(--surface);
+      border: 1px solid var(--surface-dim);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+    }
+    html[data-theme="dark"] .results-card {
+      background: rgba(255,255,255,0.02);
+    }
+    
+    #hierarchyContainer {
+      width: 100%;
+      overflow-x: auto !important; 
+      overflow-y: visible !important; 
+      padding: 0;
+      position: relative;
+    }
+
+    /* Ensure zoom viewport can expand horizontally but also grow down */
+    .zoom-viewport {
+      display: inline-block;
+      transform-origin: top center;
+      transition: transform 0.2s ease-out;
+      width: max-content;
+      min-width: 100%;
+      height: auto;
+      padding: 60px 20px;
+    }
+
+    /* Fixed Horizontal Card, Flexible Vertical Height */
+    .chip-node {
+      width: 280px !important;
+      min-width: 280px !important;
+      max-width: 280px !important;
+      height: auto !important;
+      min-height: 100px;
+      flex-shrink: 0;
+      margin: 0 auto;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--card);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Modern Glassmorphism & Depth */
+    [data-theme="dark"] .chip-node {
+      background: linear-gradient(145deg, rgba(23, 28, 41, 0.9), rgba(13, 17, 28, 0.95));
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    [data-theme="light"] .chip-node {
+      background: linear-gradient(145deg, #ffffff, #f8faff);
+      box-shadow: 0 10px 30px rgba(0,0,50,0.06);
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* Make whole node clickable */
+    .chip-node:hover {
+      transform: translateY(-6px) scale(1.02);
+      border-color: var(--accent);
+      box-shadow: 0 20px 40px rgba(47,107,255,0.15);
+    }
+    
+    /* -------------------------------------------------------------------------
+       Chain (Upward Hierarchy)
+       -------------------------------------------------------------------------- */
+    .chain {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px; /* Space for the connector */
+      margin: 20px auto 60px;
+      position: relative;
+    }
+    .chain-item {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    /* Vertical line between chain items - just a simple linking line */
+    .chain-item:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: 2px;
+      height: 40px;
+      background: var(--stroke);
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+    /* Removed the arrow head (the ::before element) */
+
+    /* Ensure profile links are clickable above the drill-down helper */
+    .avatar-link, .title a {
+      position: relative;
+      z-index: 10;
+      cursor: pointer;
+    }
+    .avatar-link:hover .node-avatar {
+      border-color: var(--accent);
+      transform: scale(1.05);
+    }
+    .title a:hover {
+      color: var(--accent) !important;
+      text-decoration: underline !important;
+    }
+
+    .node-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .node-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%; /* Circle looks better for centered profile */
+      object-fit: cover;
+      background: var(--accent-subtle);
+      border: 3px solid var(--card);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .node-id-info {
+      width: 100%;
+      min-width: 0;
+    }
+    .title { 
+      font-size: 17px; 
+      font-weight: 800; 
+      letter-spacing: -0.4px; 
+      color: var(--text-strong); 
+      margin: 0;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .subtitle { 
+      font-size: 12px; 
+      font-weight: 600; 
+      color: var(--accent); 
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Reports Count Pill - Modernized */
+    .reports-count-pill {
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      background: var(--accent);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 4px 10px rgba(47,107,255,0.4);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      z-index: 10;
+      border: 2px solid var(--card);
+    }
+
+    /* Modern Field Grid */
+    .node-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      width: 100%;
+    }
+    [data-theme="light"] .node-fields { border-top-color: rgba(0,0,0,0.08); }
+
+    /* Reorganizing key-value info to have a consistent starting point for values */
+    .field-item { 
+      display: flex; 
+      align-items: flex-start; /* Align top for multi-line values */
+      gap: 12px;
+      width: 100%;
+      margin-bottom: 4px;
+    }
+    .field-key {
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+      width: 110px; /* Fixed width so all values start at the same vertical line */
+      white-space: normal; /* Allow wrapping if keys are somehow very long */
+      opacity: 0.7;
+      line-height: 1.4;
+    }
+    .field-val {
+      color: var(--text-strong);
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: left; /* Unified starting point */
+      flex: 1; 
+      white-space: normal; 
+      word-break: break-word; /* Better for long emails/addresses */
+      line-height: 1.4;
+    }
+    @media (max-width: 520px){ .node-fields{ grid-template-columns: 1fr; } }
+
+    .connector{
+      width: 2px;
+      height: 32px;
+      margin: 0 auto;
+      position: relative;
+      background: var(--stroke);
+    }
+
+    /* Chain spacing for upward view */
+    .chain{ display:flex; flex-direction:column; align-items:center; width:100%; }
+    .chain-item{ width:100%; max-width: fit-content; margin:0 auto; display:flex; flex-direction:column; align-items:center; }
+
+    /* Downward hierarchy: Org Chart Style */
+    .down-tree{ 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      width: fit-content;
+      margin: 0 auto;
+    }
+    .down-tree .node{ position: relative; z-index: 2; margin-bottom: 32px; }
+
+    /* Vertical line coming out from parent */
+    .down-tree:has(.children):not(.collapsed) > .node::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -15px; /* End at the start of the toggle button */
+      width: 2px;
+      height: 15px;
+      background: var(--stroke);
+      transform: translateX(-50%);
+    }
+
+    /* Container for children on the same level */
+    .down-tree .children {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap; /* Keep cards in one horizontal line */
+      align-items: flex-start;
+      gap: 32px;
+      position: relative;
+      padding-top: 32px;
+      margin-top: 15px; 
+    }
+
+    /* Hide extra results by default (used only when not collapsed) */
+    .down-tree:not(.collapsed) .child-item.hidden-child { 
+      display: none !important; 
+    }
+
+    /* Standard child-item alignment */
+    .child-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    /* View More Button - Horizontal Alignment */
+    .view-more-btn {
+      padding: 12px 24px;
+      height: 80px; /* Align with node height */
+      background: var(--card2);
+      color: var(--text-strong);
+      border: 1px dashed var(--accent);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 150px;
+      flex-shrink: 0;
+      margin: 0; 
+    }
+
+    /* The horizontal connecting bar for siblings */
+    .down-tree .children::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 161px;
+      right: 161px;
+      height: 2px;
+      background: var(--stroke);
+    }
+
+    /* Vertical connector from horizontal bar to child node */
+    .down-tree .children > .child-item::before {
+      content: "";
+      position: absolute;
+      top: -32px;
+      left: 160px; /* Center of the 320px card */
+      width: 2px;
+      height: 32px;
+      background: var(--stroke);
+    }
+
+    .down-tree .title { font-size: 17px; font-weight: 850; letter-spacing: -0.4px; color: var(--text-strong); margin-bottom: 2px; }
+    .down-tree .subtitle { font-size: 13px; font-weight: 600; color: var(--text-soft); opacity: 0.85; letter-spacing: -0.2px; margin-top: 2px; }
+    .down-tree .node-fields { 
+      grid-template-columns: 100px 1fr; 
+      gap: 4px 8px;
+    }
+
+    .down-tree.collapsed .children { display: none !important; }
+    .hidden-sibling { display: none !important; }
+
+    /* Expand/Collapse Toggle - Simple Style */
+    .toggle-sub {
+      position: absolute;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 28px;
+      height: 28px;
+      background: var(--card2); /* Using theme-neutral background */
+      color: var(--text-strong);
+      border: 1px solid var(--stroke);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 10;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .toggle-sub:hover { 
+      background: var(--glass);
+      border-color: var(--accent);
+      transform: translateX(-50%) scale(1.1); 
+    }
+    .toggle-sub.collapsed::before { content: "+"; }
+    .toggle-sub:not(.collapsed)::before { content: "−"; }
+
+    /* Hidden child logic */
+    .siblings-wrapper { display: none !important; }
+    /* .hidden-child class is handled via down-tree:not(.collapsed) selector above */
+
+
+    /* Adjust hierarchyContainer for potential width overflow */
+    #hierarchyContainer {
+      overflow-x: auto;
+      padding-bottom: 40px;
+    }
+
+    /* 1) FIX: picker going behind cards (stacking contexts) */
+    .search-card{ overflow: visible; position: relative; z-index: 50; }
+    .fields-picker{ position:relative; z-index: 2000; }
+    .picker-menu{
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(380px, 92vw);
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 16px;
+      border: 1px solid var(--stroke);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      z-index: 100000;
+      isolation: isolate;
+    }
+    html[data-theme="dark"] .picker-menu {
+      background: #1e2332;
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+    }
+    /* results/export area should not overlap picker */
+    .content{ position: relative; z-index: 1; }
+
+    /* Some card styles use transform/backdrop-filter which can create stacking contexts.
+       Ensure side + any sticky elements stay below picker. */
+    .side{ z-index: 5; }
+    #hierarchyContainer{ position: relative; z-index: 1; }
+
+    /* 2) Selected columns "chips" too bold -> tone down */
+    #selectedChips .chip{
+      font-weight: 600;           /* reduced */
+      letter-spacing: 0;          /* remove heavy feel */
+    }
+    #selectedChips .chip .remove{
+      font-weight: 700;           /* keep x visible but not too heavy */
+    }
+
+    /* Also keep picker toggle text not too bold */
+    .picker-toggle{ font-weight: 650; }
+    .seg span{ font-weight: 650; }
+
+    /* Optional: make picker list items lighter */
+    .picker-list label{ font-weight: 550; }
+
+    /* Make "Hierarchy" blue in the title */
+    .page-title .accent{
+      color: #4aa3ff;
+      text-shadow: 0 10px 26px rgba(74,163,255,.18);
+    }
+
+    /* Export card typography cleanup */
+    .side h4{
+      font-size: 15px;          /* slightly larger */
+      font-weight: 750;         /* less bold */
+      letter-spacing: .01em;    /* less heavy */
+    }
+    .side .meta{
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .side .row{
+      margin-top: 12px;
+    }
+    .side button.btn{
+      padding: 10px 12px;       /* consistent hit area */
+      font-size: 13px;
+    }
+    .side .hint{
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Selected fields (chips): normal size + not bold */
+    #selectedChips .chip{
+      font-size: 12px;          /* normal / compact */
+      font-weight: 500;         /* not bold */
+      letter-spacing: 0;
+    }
+    #selectedChips .chip .remove{
+      font-weight: 600;         /* subtle emphasis only for the X */
+    }
+
+    /* Export card: improve text sizing + spacing */
+    .side h4{
+      font-size: 16px;          /* clearer heading */
+      font-weight: 750;
+      letter-spacing: .01em;
+    }
+    .side .meta{
+      font-size: 13px;          /* was 12 */
+      font-weight: 600;
+    }
+    .side .row{
+      margin-top: 14px;         /* a bit more breathing room */
+    }
+    .side .hint{
+      font-size: 13px;          /* was 12 */
+      font-weight: 600;
+      line-height: 1.6;
+    }
+    .side button.btn{
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    /* View More Button - Horizontal Alignment */
+    .view-more-btn {
+      padding: 12px 24px;
+      height: 80px; /* Align with node height */
+      background: var(--card2);
+      color: var(--text-strong);
+      border: 1px dashed var(--accent);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 150px;
+      flex-shrink: 0;
+      margin: 0; /* Important: NO margin so it stays in the row */
+      align-self: flex-start;
+      /* If inside .children, position relative to sibling connectors if needed, 
+         but for horizontal flow, just being a flex sibling is enough */
+    }
+    
+    /* Ensure the connector lines don't appear for the View More button itself */
+    .view-more-btn::before { display: none !important; }
+
+    .view-more-btn:hover { 
+      background: var(--glass);
+      border-style: solid;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .view-more-btn::after {
+      content: "→"; /* Right arrow for horizontal expand */
+      font-size: 16px;
+    }
+    
+    .hidden-child { display: none !important; }
+
+    /* Ensure vertical flexibility for cards */
+    .down-tree .chip-node {
+      height: auto;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Zoom Controls */
+    .viewport-controls {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+    }
+    .zoom-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      color: var(--text-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 700;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+    .zoom-btn:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* Restore the horizontal connecting bar for siblings */
+    .down-tree .children::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 161px; /* Half of 320px + 1px for centering */
+      right: 161px;
+      height: 2px;
+      background: var(--stroke);
+    }
+
+    /* If only one child, no horizontal bar needed */
+    .down-tree .children:has(> .child-item:only-of-type)::before {
+      display: none;
+    }
+
+    /* Page Title Gradient - Dashboard Style */
+    .page-title {
+      font-size: 42px;
+      font-weight: 850;
+      letter-spacing: -1.5px;
+    }
+    .page-title .accent {
+      background: linear-gradient(135deg, #4aa3ff, #805cff);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: none;
+    }
+
+    /* Node Text Styles matched to Dashboard/Landing Page */
+    .down-tree .title, .chain .title, .title { 
+      font-size: 17px; 
+      font-weight: 850; 
+      letter-spacing: -0.4px; 
+      color: var(--text-strong); 
+      margin-bottom: 2px;
+    }
+    .down-tree .subtitle, .chain .subtitle, .subtitle { 
+      font-size: 13px; 
+      font-weight: 600; 
+      color: var(--text-soft); 
+      opacity: 0.85;
+      letter-spacing: -0.2px;
+      margin-top: 2px;
+    }
+
+    /* Field detail typography */
+    .field-key {
+      color: var(--text-muted);
+      font-weight: 800; /* Use heavier weight from dashboard */
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+    .field-val {
+      color: var(--text-strong);
+      font-size: 13px;
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    /* Fullscreen Mode Styles */
+    body.is-fullscreen {
+      overflow: hidden !important;
+      background: var(--bg) !important;
+    }
+    body.is-fullscreen .top-nav,
+    body.is-fullscreen .page-head,
+    body.is-fullscreen .search-card,
+    body.is-fullscreen .stat-card,
+    body.is-fullscreen .top-grid,
+    body.is-fullscreen footer {
+      display: none !important;
+    }
+    body.is-fullscreen .container {
+      max-width: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+    body.is-fullscreen .content {
+      margin-top: 0 !important;
+      height: 100vh !important;
+      padding: 0 !important;
+    }
+    body.is-fullscreen .results-card {
+      border-radius: 0 !important;
+      border: none !important;
+      height: 100vh !important;
+      width: 100vw !important;
+      min-height: 100vh !important;
+      background: var(--bg) !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      z-index: 9999 !important;
+    }
+    body.is-fullscreen #hierarchyContainer {
+      height: 100vh !important;
+      width: 100vw !important;
+      background: var(--bg);
+    }
+    body.is-fullscreen .viewport-controls {
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 10001 !important;
+    }
+    
+    /* Sticky exit button for fullscreen */
+    .exit-fs-btn {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 10000;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 8px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    body.is-fullscreen .exit-fs-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  {% include '_navbar.html' %}
+  <button class="exit-fs-btn" onclick="toggleFullscreen()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+      <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Exit Full Screen (ESC)
+  </button>
+  <div class="container anim-fade-up">
+    <div class="page-hero">
+      <div class="hero-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Organization Structure
+      </div>
+      <h1 class="page-title">Dynamic <span class="title-accent">Hierarchy</span></h1>
+      <p class="page-subtitle">
+        Visualize reporting lines, team structures, and organizational depth with interactive live-search and real-time path discovery.
+      </p>
+    </div>
+
+    <div class="top-grid">
+      <div class="glass-card search-card">
+        <form id="searchForm" method="POST">
+          <div class="filter-grid">
+            <div class="searchWrap">
+              <span class="field-label">Employee Identity</span>
+              <div class="field-wrapper">
+                <div class="field-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                  </svg>
+                </div>
+                <input class="modern-input" id="emailBox" type="text" name="email" placeholder="Search by name, ID or email..." required
+                  value="{{ request.form.email or request.args.get('email') or (hierarchy.get('mail') if hierarchy is mapping else '') or '' }}">
+                <div id="emailSuggestions" class="suggestions" style="display:none;"></div>
+              </div>
+            </div>
+
+            <div>
+              <span class="field-label">Sequence Path</span>
+              <div class="seg" role="radiogroup" aria-label="Direction">
+                <label>
+                  <input type="radio" name="direction" value="upward"
+                    {% if (direction or request.form.get('direction','upward')) != 'downward' %}checked{% endif %}>
+                  <span>Upward</span>
+                </label>
+                <label>
+                  <input type="radio" name="direction" value="downward"
+                    {% if (direction or request.form.get('direction')) == 'downward' %}checked{% endif %}>
+                  <span>Downward</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: 10px; position: relative;">
+            <div class="fields-picker" style="position: static;">
+              <div id="pickerToggle" class="picker-toggle">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12h18M3 6h18M3 18h12" stroke-linecap="round"/>
+                </svg>
+                Display Fields
+              </div>
+              <div id="pickerMenu" class="picker-menu" style="display:none">
+                <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <input id="pickerSearch" class="picker-search" style="margin-bottom: 0; flex: 1;" placeholder="Search fields..." />
+                  <button type="button" id="selectAllFields" style="background: var(--surface-dim); border: 1px solid var(--stroke); padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; color: var(--text-soft); cursor: pointer; white-space: nowrap;">
+                    Select All
+                  </button>
+                </div>
+                <div id="pickerList" class="picker-list">
+                  {% for field, label in available_fields %}
+                    <label>
+                      <input class="picker-checkbox" type="checkbox" value="{{ field }}"
+                        {% if selected_fields %}{% if field in selected_fields %}checked{% endif %}
+                        {% else %}{% if loop.index <= 3 %}checked{% endif %}{% endif %}>
+                      <span>{{ label }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+                <div class="picker-actions">
+                  <button id="pickerApply" class="btn-action btn-primary" style="padding: 8px 16px; font-size: 0.9rem;">Update View</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn-action btn-primary" type="submit">
+              Generate View
+            </button>
+          </div>
+
+          <div id="selectedChips" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+        </form>
+      </div>
+
+      <div class="glass-card stat-card">
+        <div class="icon-box">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <span class="stat-label">Total Reporting Nodes</span>
+        <span class="stat-value" id="nodeCount">0</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="results-card">
+        <div class="viewport-controls">
+          <button id="downloadCsvBtnTop" class="zoom-btn" title="Export CSV">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          </button>
+          <button id="downloadImageBtnTop" class="zoom-btn" title="Download Image">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </button>
+          <button id="fullscreenBtn" class="zoom-btn" title="Focus Mode" onclick="toggleFullscreen()">
+            <svg id="fsIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h6v6M9 21H3v-6M21 9v12h-12M3 15V3h12"/></svg>
+          </button>
+        </div>
+        
+        <div id="hierarchyContainer">
+          <div id="zoomViewport" class="zoom-viewport">
+          {% macro show_fields(obj, fields) -%}
+            <div class="node-fields" aria-hidden="true">
+              {%- for f in fields %}
+                {%- if obj.get(f) is not none and obj.get(f) != '' -%}
+                  <div class="field-item">
+                    <div class="field-key">
+                      {{ (available_fields|selectattr(0,'equalto',f)|list|first)[1] if (available_fields|selectattr(0,'equalto',f)|list|first) else f.replace('_',' ') }}
+                    </div>
+                    <div class="field-val">{{ obj.get(f) }}</div>
+                  </div>
+                {%- endif -%}
+              {%- endfor %}
+            </div>
+          {%- endmacro %}
+
+          {% macro render_down(node, fields) -%}
+            <div class="down-tree">
+              <div class="node">
+                <div class="chip-node">
+                  {% if node.reports_count and node.reports_count > 0 %}
+                    <div class="reports-count-pill" title="{{ node.reports_count }} direct reports">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                      {{ node.reports_count }}
+                    </div>
+                  {% endif %}
+
+                  <a class="stretchedLink" href="{{ url_for('hierarchy', email=(node.get('mail') or node.get('userPrincipalName') or ''), direction=(direction or request.form.get('direction','upward') or 'upward'), fields=fields) }}" aria-label="Open hierarchy" title="Open hierarchy"></a>
+                  
+                  <div class="node-header">
+                    <a href="{{ url_for('profile', email=(node.get('mail') or node.get('userPrincipalName') or '')) }}" class="avatar-link" title="View Profile">
+                      <img class="node-avatar" src="{{ url_for('profile_photo_user', user=(node.get('id') or node.get('mail') or node.get('userPrincipalName'))) }}" alt="">
+                    </a>
+                    <div class="node-id-info">
+                      <div class="title">
+                        <a href="{{ url_for('profile', email=(node.get('mail') or node.get('userPrincipalName') or '')) }}" style="color:inherit; text-decoration:none;" title="View Profile">
+                          {{ node.get('displayName') or 'Unknown' }}
+                        </a>
+                      </div>
+                      <div class="subtitle">{{ node.get('jobTitle') or 'Staff' }}</div>
+                    </div>
+                  </div>
+                  
+                  {{ show_fields(node, fields) }}
+
+                  {% if node.has_reports %}
+                    <div class="toggle-sub collapsed" 
+                         data-uid="{{ node.get('id') or node.get('mail') or node.get('userPrincipalName') }}"
+                         data-loaded="{% if node.children %}true{% else %}false{% endif %}"
+                         onclick="toggleSub(this, event)" title="Toggle direct reports"></div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="children" style="display: none;">
+                {% if node.children %}
+                  {% for c in node.children %}
+                    <div class="child-item {% if loop.index > 4 %}hidden-sibling{% endif %}">
+                      {{ render_down(c, fields) }}
+                    </div>
+                  {% endfor %}
+                  {% if node.children|length > 4 %}
+                    <div class="child-item view-more-siblings-wrapper">
+                      <button class="view-more-btn" onclick="viewAllSiblings(this, event)">
+                        +{{ node.children|length - 4 }} more members
+                      </button>
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {%- endmacro %}
+
+          {% if hierarchy %}
+            {% set fields = selected_fields or request.form.getlist('fields') or ['displayName','mail','jobTitle'] %}
+            {% if (direction or request.form.get('direction','upward')) == 'downward' %}
+              <div class="root-node-container">
+                {{ render_down(hierarchy, fields) }}
+              </div>
+              <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                  const rootTree = document.querySelector('.root-node-container > .down-tree');
+                  if (rootTree) {
+                    rootTree.classList.remove('collapsed');
+                    const rootToggle = rootTree.querySelector(':scope > .node .toggle-sub');
+                    if (rootToggle) rootToggle.classList.remove('collapsed');
+                    const rootChildren = rootTree.querySelector(':scope > .children');
+                    if (rootChildren) rootChildren.style.display = 'flex';
+                  }
+                });
+              </script>
+            {% else %}
+              {% if hierarchy is mapping %}
+                {% set chain = hierarchy.chain if hierarchy.chain is defined else hierarchy.get('chain') %}
+              {% elif hierarchy is iterable %}
+                {% set chain = hierarchy %}
+              {% else %}
+                {% set chain = None %}
+              {% endif %}
+
+              {% if chain %}
+                <div class="chain" id="chainList">
+                  {% for n in chain %}
+                    <div class="chain-item">
+                      <div class="chip-node {% if loop.last %}target{% endif %}">
+                        <a class="stretchedLink" href="{{ url_for('hierarchy', email=(n.get('mail') or n.get('userPrincipalName') or ''), direction=(direction or 'upward'), fields=fields) }}" aria-label="Open hierarchy" title="Open hierarchy"></a>
+                        
+                        <div class="node-header">
+                          <a href="{{ url_for('profile', email=(n.get('mail') or n.get('userPrincipalName') or '')) }}" class="avatar-link" title="View Profile">
+                            <img class="node-avatar" src="{{ url_for('profile_photo_user', user=(n.get('id') or n.get('mail') or n.get('userPrincipalName'))) }}" alt="">
+                          </a>
+                          <div class="node-id-info">
+                            <div class="title">
+                              <a href="{{ url_for('profile', email=(n.get('mail') or n.get('userPrincipalName') or '')) }}" style="color:inherit; text-decoration:none;" title="View Profile">
+                                {{ n.get('displayName') or 'Unknown' }}
+                              </a>
+                            </div>
+                            <div class="subtitle">{{ n.get('jobTitle') or 'Staff' }}</div>
+                          </div>
+                        </div>
+
+                        {{ show_fields(n, fields) }}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            <div class="toast" style="margin-top:6px">Search to view hierarchy.</div>
+          {% endif %}
+          </div><!-- end zoomViewport -->
+        </div>
+      </div>
+
+      <!-- Export card REMOVED -->
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+    const pickerToggle = document.getElementById('pickerToggle');
+    const pickerMenu = document.getElementById('pickerMenu');
+    const pickerSearch = document.getElementById('pickerSearch');
+    const pickerList = document.getElementById('pickerList');
+    const selectAll = document.getElementById('selectAll');
+    const pickerApply = document.getElementById('pickerApply');
+    const pickerCancel = document.getElementById('pickerCancel');
+    const selectedChips = document.getElementById('selectedChips');
+    const selectedCount = document.getElementById('selectedCount');
+
+    function syncFieldsToForm() {
+      const form = document.getElementById('searchForm');
+      if (!form) return;
+      [...form.querySelectorAll('input[data-generated="true"][name="fields"]')].forEach(i => i.remove());
+      [...document.querySelectorAll('.picker-checkbox:checked')].forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'fields';
+        input.value = cb.value;
+        input.setAttribute('data-generated', 'true');
+        form.appendChild(input);
+      });
+    }
+
+    function updateChips(){
+      if (!selectedChips) return;
+      selectedChips.innerHTML = '';
+      const checked = [...document.querySelectorAll('.picker-checkbox:checked')];
+      if (selectedCount) selectedCount.textContent = checked.length;
+
+      checked.forEach(cb=>{
+        const label = cb.parentNode.textContent.trim();
+        const span = document.createElement('span');
+        span.className='chip';
+        span.innerHTML = `${label} <span class="remove" title="Remove">×</span>`;
+        span.querySelector('.remove').addEventListener('click',()=>{
+          cb.checked=false; updateChips(); syncFieldsToForm();
+        });
+        selectedChips.appendChild(span);
+      });
+    }
+
+    function setPickerExpanded(expanded){
+      if (!pickerToggle) return;
+      pickerToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    pickerToggle && pickerToggle.addEventListener('click',(e)=>{
+      e.preventDefault();
+      const open = pickerMenu.style.display !== 'none';
+      pickerMenu.style.display = open ? 'none' : 'block';
+      setPickerExpanded(!open);
+      if (!open) pickerSearch && pickerSearch.focus();
+    });
+
+    pickerCancel && pickerCancel.addEventListener('click',()=>{
+      pickerMenu.style.display='none';
+      setPickerExpanded(false);
+    });
+
+    pickerApply && pickerApply.addEventListener('click',(e)=>{
+      e.preventDefault();
+      pickerMenu.style.display='none';
+      setPickerExpanded(false);
+      updateChips();
+      syncFieldsToForm();
+    });
+
+    document.addEventListener('click', (e)=>{
+      if (!pickerMenu || !pickerToggle) return;
+      if (pickerMenu.style.display === 'none') return;
+      const t = e.target;
+      if (pickerMenu.contains(t) || pickerToggle.contains(t)) return;
+      pickerMenu.style.display = 'none';
+      setPickerExpanded(false);
+    });
+
+    document.addEventListener('keydown', (e)=>{
+      if (e.key !== 'Escape') return;
+      if (!pickerMenu) return;
+      if (pickerMenu.style.display === 'none') return;
+      pickerMenu.style.display = 'none';
+      setPickerExpanded(false);
+    });
+
+    const selectAllBtn = document.getElementById('selectAllFields');
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', () => {
+        const checkboxes = [...document.querySelectorAll('.picker-checkbox')];
+        const allChecked = checkboxes.every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+        selectAllBtn.textContent = allChecked ? 'Select All' : 'Deselect All';
+        updateChips();
+        syncFieldsToForm();
+      });
+    }
+
+    const pickerCheckboxes = document.querySelectorAll('.picker-checkbox');
+    pickerCheckboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (selectAllBtn) {
+          const allChecked = [...pickerCheckboxes].every(c => c.checked);
+          selectAllBtn.textContent = allChecked ? 'Deselect All' : 'Select All';
+        }
+        updateChips();
+        syncFieldsToForm();
+      });
+    });
+
+    const pickerSearchIn = document.getElementById('pickerSearch');
+    pickerSearchIn && pickerSearchIn.addEventListener('input', ()=>{
+      const q = pickerSearchIn.value.trim().toLowerCase();
+      [...pickerList.querySelectorAll('label')].forEach(l=>{
+        const txt = l.textContent.toLowerCase();
+        l.style.display = txt.indexOf(q)!==-1 ? 'flex' : 'none';
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded',()=>{
+      updateChips();
+      syncFieldsToForm();
+      setPickerExpanded(false);
+    });
+
+    const searchForm = document.getElementById('searchForm');
+    if (searchForm) {
+      searchForm.addEventListener('submit', function () { syncFieldsToForm(); }, {capture:true});
+    }
+
+    const downloadCsvBtn = document.getElementById('downloadCsvBtnTop');
+    if (downloadCsvBtn) {
+      downloadCsvBtn.addEventListener('click', function () {
+        syncFieldsToForm();
+        const form = document.getElementById('searchForm');
+        const formData = new FormData(form);
+        const f = document.createElement('form'); f.method='POST'; f.action='/hierarchy/export_csv'; f.style.display='none';
+        for (const pair of formData.entries()) { const i=document.createElement('input'); i.name=pair[0]; i.value=pair[1]; f.appendChild(i); }
+        document.body.appendChild(f); f.submit(); document.body.removeChild(f);
+      });
+    }
+
+    const downloadImageBtn = document.getElementById('downloadImageBtnTop');
+    if (downloadImageBtn) {
+      downloadImageBtn.addEventListener('click', function () {
+        syncFieldsToForm();
+        const container = document.getElementById('hierarchyContainer');
+        const viewport = document.getElementById('zoomViewport');
+        if (!container || !viewport) { alert('Nothing to capture'); return; }
+        
+        // Temporarily reset zoom for high-quality full capture
+        const oldTransform = viewport.style.transform;
+        viewport.style.transform = 'scale(1)';
+        
+        // Use computed background if available, else white for light theme / dark for dark theme
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const bgColor = isLight ? '#f6f8ff' : '#070a12';
+
+        // Capture the entire viewport content
+        html2canvas(viewport, {
+          backgroundColor: bgColor,
+          scale: 2, // High resolution
+          logging: false,
+          useCORS: true,
+          width: viewport.scrollWidth,
+          height: viewport.scrollHeight,
+          windowWidth: viewport.scrollWidth,
+          windowHeight: viewport.scrollHeight,
+          x: 0,
+          y: 0,
+          onclone: (clonedDoc) => {
+            // Ensure all dynamic styles are respected in the clone
+            const clonedViewport = clonedDoc.getElementById('zoomViewport');
+            clonedViewport.style.transform = 'scale(1)';
+            clonedViewport.style.padding = '40px';
+          }
+        }).then(canvas=>{
+          // Restore zoom
+          viewport.style.transform = oldTransform;
+          
+          canvas.toBlob(function(blob){
+            const url = URL.createObjectURL(blob);
+            const a=document.createElement('a');
+            a.href=url;
+            a.download='full_hierarchy.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 'image/png');
+        }).catch((err)=>{
+          viewport.style.transform = oldTransform;
+          console.error(err);
+          alert('Image capture failed');
+        });
+      });
+    }
+
+    // Live user suggestions for the email box (same UX as Org Simulator)
+    (function initEmailSuggestions(){
+      const box = document.getElementById('emailBox');
+      const panel = document.getElementById('emailSuggestions');
+      if (!box || !panel) return;
+
+      const resultsCard = document.querySelector('.results-card');
+      const nodeCountDisplay = document.getElementById('nodeCount');
+
+      // Update node count if cards exist
+      if (resultsCard && nodeCountDisplay) {
+        const nodes = resultsCard.querySelectorAll('.chip-node');
+        if (nodes.length > 0) {
+           nodeCountDisplay.textContent = nodes.length;
+        }
+      }
+
+      let last = [];
+
+      function hide(){
+        panel.style.display = 'none';
+        panel.innerHTML = '';
+      }
+
+      function render(list){
+        panel.innerHTML = '';
+        last = (list || []).slice(0, 25);
+        if (!last.length) { hide(); return; }
+
+        for (const u of last) {
+          const uid = u.id || u.mail || u.userPrincipalName || '';
+          
+          const item = document.createElement('div');
+          item.className = 'suggestionItem';
+          item.setAttribute('role','button');
+          item.tabIndex = 0;
+
+          // Add avatar to match dashboard/employees style
+          const avatar = document.createElement('div');
+          avatar.className = 'suggestion-avatar';
+          const img = document.createElement('img');
+          img.src = uid ? `/profile/photo/${encodeURIComponent(uid)}` : '';
+          img.onerror = () => { avatar.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'; };
+          avatar.appendChild(img);
+
+          const info = document.createElement('div');
+          info.className = 'suggestion-info';
+
+          const name = document.createElement('div');
+          name.className = 'suggestionName';
+          name.textContent = u.displayName || u.mail || u.userPrincipalName || '(no name)';
+
+          const meta = document.createElement('div');
+          meta.className = 'suggestionMeta';
+          meta.textContent = [u.jobTitle, u.department].filter(Boolean).join(' • ') || (u.mail || u.userPrincipalName);
+
+          info.appendChild(name);
+          info.appendChild(meta);
+
+          item.appendChild(avatar);
+          item.appendChild(info);
+
+          const selectThis = () => {
+            const val = u.mail || u.userPrincipalName || '';
+            if (val) box.value = val;
+            hide();
+          };
+
+          item.addEventListener('mousedown', (e) => { e.preventDefault(); selectThis(); });
+          item.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); selectThis(); } });
+
+          panel.appendChild(item);
+        }
+        panel.style.display = 'block';
+      }
+
+      function debounce(fn, wait){
+        let t;
+        return (...args) => {
+          clearTimeout(t);
+          t = setTimeout(() => fn(...args), wait);
+        };
+      }
+
+      async function fetchSuggestions(q){
+        const t = (q || '').trim();
+        if (!t) return [];
+        const res = await fetch(`{{ url_for('user_search') }}?q=${encodeURIComponent(t)}&limit=25`);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Search failed');
+        return data.items || [];
+      }
+
+      const onInput = debounce(async () => {
+        const q = (box.value || '').trim();
+        if (!q) { hide(); return; }
+        try {
+          const items = await fetchSuggestions(q);
+          render(items);
+        } catch {
+          hide();
+        }
+      }, 220);
+
+      box.addEventListener('input', () => onInput());
+      box.addEventListener('focus', () => onInput());
+      box.addEventListener('blur', () => setTimeout(hide, 140));
+
+      document.addEventListener('click', (e) => {
+        if (!panel.contains(e.target) && e.target !== box) hide();
+      });
+    })();
+
+    async function toggleSub(btn, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      
+      const tree = btn.closest('.down-tree');
+      const children = tree ? tree.querySelector(':scope > .children') : null;
+      if (!tree || !children) return;
+
+      const isCollapsed = tree.classList.contains('collapsed');
+      
+      if (isCollapsed) {
+        // If not loaded yet, fetch from server via AJAX
+        if (btn.dataset.loaded === 'false') {
+          btn.style.opacity = '0.5';
+          btn.style.cursor = 'wait';
+          
+          try {
+            const uid = btn.dataset.uid;
+            // Get currently selected fields from checkboxes to pass to the API
+            const selectedFields = [...document.querySelectorAll('.picker-checkbox:checked')].map(cb => cb.value);
+            let url = `{{ url_for('hierarchy_fetch_reports') }}?uid=${encodeURIComponent(uid)}`;
+            selectedFields.forEach(f => url += `&fields=${encodeURIComponent(f)}`);
+
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (data.ok && data.reports && data.reports.length > 0) {
+              // Create HTML for each child using a helper or template literal
+              // Since we are inside the template, we can't easily call the Jinja macro from JS,
+              // so we will show a simplified version or reload the node content.
+              // For a truly seamless experience, we usually use a JS-based template for nodes.
+              
+              // Simplest approach: We'll inject the new children into the DOM
+              data.reports.forEach((report, index) => {
+                const childDiv = document.createElement('div');
+                childDiv.className = 'child-item' + (index > 3 ? ' hidden-sibling' : '');
+                
+                // Build the inner node structure (matches render_down macro)
+                childDiv.innerHTML = createNodeHTML(report, index);
+                children.appendChild(childDiv);
+              });
+              
+              if (data.reports.length > 4) {
+                const moreWrapper = document.createElement('div');
+                moreWrapper.className = 'child-item view-more-siblings-wrapper';
+                moreWrapper.innerHTML = `
+                  <button class="view-more-btn" onclick="viewAllSiblings(this, event)">
+                    +${data.reports.length - 4} more members
+                  </button>`;
+                children.appendChild(moreWrapper);
+              }
+              
+              btn.dataset.loaded = 'true';
+            } else {
+              // No reports found, hide the button
+              btn.style.display = 'none';
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to fetch reports:', err);
+            alert('Error loading reports. Please try again.');
+          } finally {
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+          }
+        }
+        
+        tree.classList.remove('collapsed');
+        btn.classList.remove('collapsed');
+        children.style.display = 'flex';
+      } else {
+        tree.classList.add('collapsed');
+        btn.classList.add('collapsed');
+        children.style.display = 'none';
+      }
+    }
+
+    // New helper to create node HTML dynamically for AJAX results
+    function createNodeHTML(node, index) {
+      const email = node.mail || node.userPrincipalName || '';
+      const name = node.displayName || email || 'Unknown';
+      const job = node.jobTitle || node.department || 'Staff';
+      const uid = node.id || email;
+      
+      const reportsCountHTML = (node.reports_count && node.reports_count > 0) ? `
+        <div class="reports-count-pill" title="${node.reports_count} direct reports">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          ${node.reports_count}
+        </div>` : '';
+
+      // Fields rendering logic
+      let fieldsHTML = '<div class="node-fields" aria-hidden="true">';
+      const selectedFields = [...document.querySelectorAll('.picker-checkbox:checked')].map(cb => cb.value);
+      
+      selectedFields.forEach(f => {
+        // Try exact key first, then fallback to normalized or user-attributes if needed
+        const val = node[f] || node.userAttributes?.[f]; 
+        if (val && val !== 'null' && val !== 'undefined') {
+          const labelEl = document.querySelector(`.picker-checkbox[value="${f}"]`);
+          const label = labelEl ? labelEl.parentElement.textContent.trim() : f;
+          fieldsHTML += `<div class="field-item"><div class="field-key">${label}</div><div class="field-val">${val}</div></div>`;
+        }
+      });
+      fieldsHTML += '</div>';
+
+      const toggleHTML = node.has_reports ? `
+              <div class="toggle-sub collapsed" 
+                   data-uid="${uid}" 
+                   data-loaded="false"
+                   onclick="toggleSub(this, event)" title="Toggle direct reports"></div>` : '';
+
+      return `
+        <div class="down-tree collapsed">
+          <div class="node">
+            <div class="chip-node">
+              ${reportsCountHTML}
+              <a class="stretchedLink" href="/hierarchy?email=${encodeURIComponent(email)}&direction=downward" aria-label="Open hierarchy" title="Open hierarchy"></a>
+              <div class="node-header">
+                <a href="/profile?email=${encodeURIComponent(email)}" class="avatar-link" title="View Profile">
+                  <img class="node-avatar" src="/profile/photo/${encodeURIComponent(uid)}" alt="">
+                </a>
+                <div class="node-id-info">
+                  <div class="title">
+                    <a href="/profile?email=${encodeURIComponent(email)}" style="color:inherit; text-decoration:none;" title="View Profile">
+                      ${name}
+                    </a>
+                  </div>
+                  <div class="subtitle">${job}</div>
+                </div>
+              </div>
+              ${fieldsHTML}
+              ${toggleHTML}
+            </div>
+          </div>
+          <div class="children" style="display: none;"></div>
+        </div>
+      `;
+    }
+
+    function viewAllSiblings(btn, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      const childrenBox = btn.closest('.children');
+      const hiddenOnes = childrenBox.querySelectorAll('.child-item.hidden-sibling');
+      hiddenOnes.forEach(h => h.classList.remove('hidden-sibling'));
+      
+      const wrapper = btn.closest('.view-more-siblings-wrapper');
+      if (wrapper) wrapper.remove();
+      else btn.remove();
+    }
+
+    function viewMore(btn, e) {
+      if(e) e.stopPropagation();
+      const parent = btn.closest('.children');
+      if(!parent) return;
+      
+      // Select all hidden children in THIS level
+      const hidden = Array.from(parent.querySelectorAll('.child-item.hidden-child'));
+      hidden.forEach(el => el.classList.remove('hidden-child'));
+      
+      // Remove the wrapper after showing everything
+      const wrapper = btn.closest('.view-more-wrapper');
+      if(wrapper) wrapper.remove();
+      else btn.remove();
+    }
+
+    /* Zoom functionality */
+    (function() {
+      const container = document.getElementById('hierarchyContainer');
+      const zoomViewport = document.querySelector('.zoom-viewport');
+      let scale = 1;
+
+      function updateTransform() {
+        zoomViewport.style.transform = `scale(${scale})`;
+      }
+
+      document.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const isZoomIn = btn.classList.contains('zoom-in');
+          const isZoomOut = btn.classList.contains('zoom-out');
+
+          if (isZoomIn) {
+            scale = Math.min(scale * 1.2, 3); // Zoom in, max scale 3x
+          } else if (isZoomOut) {
+            scale = Math.max(scale / 1.2, 1); // Zoom out, min scale 1x
+          }
+
+          updateTransform();
+        });
+      });
+
+      // Initialize container scroll position
+      container.scrollTop = 0;
+      container.scrollLeft = 0;
+    })();
+
+    let currentZoom = 1;
+    const zoomViewport = document.getElementById('zoomViewport');
+
+    function applyZoom() {
+      if (zoomViewport) {
+        zoomViewport.style.transform = `scale(${currentZoom})`;
+        // Increase container virtual size if zoomed out to keep it centered or scrollable
+        if (currentZoom < 1) {
+            zoomViewport.style.width = (100 / currentZoom) + '%';
+        } else {
+            zoomViewport.style.width = 'fit-content';
+        }
+      }
+    }
+
+    function zoomIn() {
+      currentZoom = Math.min(currentZoom + 0.1, 2);
+      applyZoom();
+    }
+
+    function zoomOut() {
+      currentZoom = Math.max(currentZoom - 0.1, 0.4);
+      applyZoom();
+    }
+
+    function zoomReset() {
+      currentZoom = 1;
+      applyZoom();
+    }
+
+   
+
+    // Optional: wheel zoom
+    function toggleFullscreen() {
+      const isFS = document.body.classList.toggle('is-fullscreen');
+      const icon = document.getElementById('fsIcon');
+      
+      if (isFS) {
+        // Exit icon
+        icon.innerHTML = '<path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5" stroke-linecap="round" stroke-linejoin="round"/>';
+        
+        // Try to use browser native fullscreen API as well
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => {
+              console.log(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+        }
+      } else {
+        // Focus icon
+        icon.innerHTML = '<path d="M15 3h6v6M9 21H3v-6M21 9v12h-12M3 15V3h12" stroke-linecap="round" stroke-linejoin="round"/>';
+        
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Auto-exit if browser fullscreen ends via ESC
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && document.body.classList.contains('is-fullscreen')) {
+        toggleFullscreen();
+      }
+    });
+
+    document.getElementById('hierarchyContainer')?.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) zoomIn();
+        else zoomOut();
+      }
+    }, { passive: false });
+  </script>
+</body>
+</html>

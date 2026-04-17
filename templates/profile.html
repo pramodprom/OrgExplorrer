@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ profile.displayName or profile.mail }} — Profile</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Theme (dark/light) applied ASAP to avoid flash -->
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+	  /* Dashboard visual tokens (kept in sync with insights.html) */
+	  :root {
+	    --dash-primary: #2f6bff;
+	    --dash-primary-rgb: 47, 107, 255;
+	  }
+
+	  body { padding-top: 80px; } /* Space for fixed navbar */
+
+	  /* Container / layout - Matched with Employees & Insights pages */
+	  .container { max-width: 1400px; margin: 0 auto; padding: 0 40px; position: relative; z-index: 1; }
+
+	  /* small visual overrides to align with dashboard tokens */
+	  .sep { height: 1px; background: var(--surface-dim); margin: 20px 0; border: none; }
+	  .muted { color: var(--text-muted); font-size: 0.9rem; }
+
+	  /* Surface & cards align with dashboard */
+	  .card, .card.pad { 
+	    background: var(--surface); 
+	    border: 1px solid var(--surface-dim); 
+	    border-radius: 28px; 
+	    box-shadow: 0 10px 40px rgba(0,0,0,0.04); 
+	    backdrop-filter: blur(10px);
+	    -webkit-backdrop-filter: blur(10px);
+	  }
+	  .card.pad { padding: 40px; }
+
+    /* Navbar (same as hierarchy/insights) */
+    .top-nav{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin-top: 2px;
+    }
+    .top-nav-inner{
+      display:flex;
+      align-items:center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--card) 88%, transparent);
+      border: 1px solid var(--surface-dim);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      backdrop-filter: blur(8px);
+      max-width: 100%;
+      overflow:auto;
+    }
+    .top-nav a{
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: var(--text-soft);
+      font-weight: 700;
+      border: 1px solid transparent;
+      transition: background .12s ease, border-color .12s ease, transform .12s ease, color .12s ease;
+      white-space:nowrap;
+    }
+    .top-nav a:hover{ background: rgba(var(--dash-primary-rgb), 0.05); border-color: rgba(var(--dash-primary-rgb), 0.1); transform: translateY(-1px); color: var(--text-strong); }
+    html[data-theme="dark"] .top-nav a:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.10); }
+
+    .top-nav a.active{
+      background: linear-gradient(135deg, rgba(47,107,255,.92), rgba(74,163,255,.92));
+      color: #071225;
+      border-color: rgba(255,255,255,.14);
+      box-shadow: 0 12px 26px rgba(47,107,255,.22);
+      font-weight: 800;
+    }
+    .top-nav .sep{ height: 22px; width: 1px; background: var(--surface-dim); margin: 0 2px; border:none; }
+    html[data-theme="dark"] .top-nav .sep { background: rgba(255,255,255,.12); }
+
+    /* Reduce bold feel (target only what is too heavy) */
+    .h-title{ font-weight: 850; letter-spacing: -0.02em; }
+    .meta{ font-weight: 600; color: var(--text-muted); }
+    .chip{ font-weight: 700; border-radius: 8px; }
+    .badge{ font-weight: 700; padding: 6px 12px; border-radius: 12px; }
+    .kv .k{ font-weight: 800; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: var(--text-muted); }
+    .kv .v{ font-weight: 600; color: var(--text-strong); }
+
+    /* Presence Styles */
+    .presence-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .presence-green { background-color: #10b981; box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+    .presence-red { background-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+    .presence-yellow { background-color: #f59e0b; box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
+    .presence-gray { background-color: #6b7280; }
+    .profile-content {
+      animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .section-title{ 
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-title::after { content: ""; flex: 1; height: 1px; background: var(--surface-dim); }
+
+    /* People list w/ photo */
+    .people-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      margin-top: 10px;
+    }
+    .person{
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      padding: 12px;
+      border-radius: 18px;
+      background: var(--surface);
+      border: 1px solid var(--surface-dim);
+      text-decoration:none;
+      color: var(--text-strong);
+      transition: all 0.2s ease;
+      height: 72px; /* Fixed height for all person cards */
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .person:hover{
+      transform: translateY(-2px);
+      background: rgba(var(--dash-primary-rgb), 0.03);
+      border-color: var(--dash-primary);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.04);
+    }
+    .person .pimg{
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 1px solid var(--surface-dim);
+      background: var(--surface-dim);
+      flex: 0 0 44px; /* Fixed width image */
+    }
+    .person .pinfo {
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .person .pname{ 
+      font-weight: 800; 
+      line-height: 1.2; 
+      font-size: 0.95rem; 
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .person .psub{ 
+      font-size: 0.8rem; 
+      color: var(--text-muted); 
+      font-weight: 600; 
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+
+    .reports-cards{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+      margin-top: 40px;
+    }
+    @media (max-width: 980px){
+      .reports-cards{ gap: 32px; }
+    }
+
+    /* Avoid overly-bold numbers in header */
+    .stat-number{ font-weight: 850; font-size: 1.5rem; color: var(--dash-primary); letter-spacing: -0.02em; }
+
+    /* Make the new reports card layout tidy */
+    .reports-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items:start;
+      margin-top: 10px;
+    }
+    @media (max-width: 980px){
+      .reports-grid{ grid-template-columns: 1fr; }
+    }
+
+    /* People inside a card side-by-side (wraps nicely) */
+    @media (max-width: 520px){
+      .people-grid{ grid-template-columns: 1fr; }
+    }
+
+    /* Reports-to is just one person: keep it full width */
+    .people-grid.one{
+      grid-template-columns: 1fr;
+    }
+
+    /* Profile Sidebar Works With styling */
+    .people-grid-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+      margin-bottom: 24px;
+    }
+    
+    /* Skills list styling for constant sizing */
+    .chips .chip {
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+    }
+    .view-more-link {
+      background: none;
+      border: none;
+      color: var(--dash-primary);
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 12px;
+      background: rgba(var(--dash-primary-rgb), 0.05);
+      border: 1px solid rgba(var(--dash-primary-rgb), 0.1);
+      text-align: center;
+      transition: all 0.2s;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .view-more-link:hover { 
+      background: rgba(var(--dash-primary-rgb), 0.1);
+      transform: translateY(-1px);
+    }
+
+    .hidden-reportee { display: none !important; }
+    .hidden-group { display: none !important; }
+
+    /* Layout Spacing Improvement */
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 40px; }
+    .profile-content { display: flex; flex-direction: column; gap: 40px; padding: 40px 0 100px; }
+    
+    /* Ensure the search container doesn't overlap the navbar */
+    .search-container-card {
+      padding: 24px; 
+      margin-bottom: 24px; 
+      position: relative; 
+      z-index: 100; /* Lower than navbar but higher than content */
+    }
+
+    #search-suggestions {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      background: #1a1d23; /* Solid dark background */
+      border: 1px solid rgba(var(--dash-primary-rgb), 0.3);
+      border-radius: 18px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+      z-index: 99999 !important;
+      overflow: hidden;
+      padding: 8px;
+    }
+    /* Light mode support for solid background */
+    [data-theme="light"] #search-suggestions {
+      background: #ffffff;
+      border: 1px solid rgba(var(--dash-primary-rgb), 0.15);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body>
+  {% include '_navbar.html' %}
+  <div class="container">
+    <!-- Header with Search Directory Alignment -->
+    <div style="padding: 40px 0 32px; display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 300px;">
+        <div class="page-title" style="font-size: clamp(2.2rem, 4vw, 3rem); font-weight: 850; line-height: 1.1; letter-spacing: -0.04em; margin-bottom: 8px; color: var(--text-strong);">
+          User <span style="color: var(--dash-primary);">Profile</span>
+        </div>
+        <div class="page-sub" style="font-size: 1.05rem; color: var(--text-soft); opacity: 0.8; max-width: 700px; line-height: 1.6; margin: 0;">
+          Detailed information, career timeline, and organizational presence for member of {{ ORG_NAME or 'the organization' }}.
+        </div>
+      </div>
+      
+      <!-- Integrated Directory Search Bar - Centered Alignment -->
+      <div style="flex: 1; max-width: 500px; position: relative;">
+        <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Quick Directory Search
+        </div>
+        <input type="text" id="profile-search-input" placeholder="Search by name or email..." 
+               style="width: 100%; padding: 14px 24px; border-radius: 20px; border: 1px solid var(--surface-dim); background: var(--surface); color: var(--text-strong); font-weight: 600; font-size: 1rem; outline: none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 24px rgba(0,0,0,0.03);"
+               onfocus="this.style.borderColor='var(--dash-primary)'; this.style.boxShadow='0 10px 30px rgba(var(--dash-primary-rgb), 0.12)'; this.style.transform='translateY(-1px)';"
+               onblur="this.style.borderColor='var(--surface-dim)'; this.style.boxShadow='0 4px 24px rgba(0,0,0,0.03)'; this.style.transform='translateY(0)';"
+               autocomplete="off">
+        <div id="search-suggestions" style="position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--surface-dim); border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.2); z-index: 99999; display: none; overflow: hidden; backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);"></div>
+      </div>
+    </div>
+
+    <div class="profile-content">
+      <div class="card pad">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:24px;">
+          <div style="display:flex; align-items:center; gap:24px; min-width:0; flex:1">
+            <div class="avatar" style="width:100px; height:100px; border-radius:32px; overflow:hidden; border:4px solid var(--surface-dim); box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+              <img src="{{ url_for('profile_photo_user', user=(profile.id or profile.mail)) }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">
+            </div>
+            <div style="min-width:0; flex:1">
+              <h1 class="h-title" style="margin:0; font-size: 2rem;">{{ profile.displayName or profile.mail }}</h1>
+              
+              <div class="h-sub" style="margin-top:8px; font-size: 1.1rem; color: var(--text-soft); font-weight: 600;">
+                {{ profile.jobTitle or '' }}{{ " • " if profile.jobTitle and profile.companyName else "" }}{{ profile.companyName or '' }}
+              </div>
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin-top:12px">
+                <div style="display:flex; align-items:center;">
+                  <span class="presence-dot presence-{{ profile.presence_color }}"></span>
+                  <span class="presence-text">{{ profile.presence_status }}</span>
+                </div>
+                <div style="width:1px; height:14px; background:var(--surface-dim);"></div>
+                <div style="display:flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:700; color:var(--text-soft);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span id="header-tenure-inline">— Tenure</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle Empty Space for actions (Hidden for own profile) -->
+            {% if (profile.mail or profile.userPrincipalName) != session['user']['email'] %}
+              <div style="flex:1; display:flex; justify-content:center; align-items:center; gap:16px;">
+                <a href="https://teams.microsoft.com/l/chat/0/0?users={{ profile.mail or profile.userPrincipalName }}" target="_blank" class="btn" style="padding:12px 20px; font-size:0.85rem; background:#464eb8; color:white; border:none; display:flex; align-items:center; gap:8px; border-radius:14px; font-weight:700; box-shadow:0 4px 12px rgba(70,78,184,0.25);">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4.5v10s-1.05 1.4-2.25 1.4c-.6 0-1.4-.4-1.8-1.2l-2.7-5.1L12.6 15c-.4.8-1.2 1.2-1.8 1.2-1.2 0-2.25-1.4-2.25-1.4V4.5c0-1.1.9-2 2-2h8.4c1.1 0 2 .9 2 2zM9 10.5l-3.3-6.1C5.3 3.6 4.6 3.2 4 3.2c-1.2 0-2.25 1.4-2.25 1.4V14.5c0 1.1.9 2 2 2h4.5v-6z"></path></svg>
+                  Teams Chat
+                </a>
+                <a href="mailto:{{ profile.mail or profile.userPrincipalName }}" class="btn" style="padding:12px 20px; font-size:0.85rem; background:rgba(var(--dash-primary-rgb), 0.1); color:var(--dash-primary); border:1px solid rgba(var(--dash-primary-rgb), 0.2); display:flex; align-items:center; gap:8px; border-radius:14px; font-weight:700;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                  Send Email
+                </a>
+              </div>
+            {% else %}
+              <div style="flex:1;"></div>
+            {% endif %}
+          </div>
+
+          <div style="display:flex; gap:40px; text-align:right; padding: 0 10px;">
+            <div>
+              <div class="meta" style="margin-bottom:4px">Status</div>
+              <div class="stat-number">{{ profile.status|capitalize }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+      <!-- LEFT: main content -->
+      <div style="display:flex; flex-direction:column; gap:32px;">
+        <div class="card pad">
+          <div style="display:flex; justify-content:space-between; gap:32px; align-items:flex-start; flex-wrap:wrap;">
+            <div style="flex:1; min-width:300px;">
+              <div class="section-title">Core Competencies</div>
+              
+              <div class="meta">Pinned people</div>
+              <div class="chips" aria-live="polite" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px;">
+                {% if profile.pinned %}
+                  {% for p in profile.pinned %}
+                    <div class="chip" style="background: rgba(var(--dash-primary-rgb), 0.05); border: 1px solid rgba(var(--dash-primary-rgb), 0.1); padding: 8px 14px; border-radius: 12px; font-weight: 700; color: var(--dash-primary);">{{ p.displayName or p.mail or p.id }}</div>
+                  {% endfor %}
+                {% else %}
+                  <div class="muted">No pinned people</div>
+                {% endif %}
+              </div>
+
+              <div style="margin-top:32px">
+                <div class="meta">Skills & Expertise</div>
+                <div class="chips" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px;">
+                  {% if profile.skills %}
+                    {% for s in profile.skills %}
+                      <div class="chip" style="background: var(--surface-dim); border: 1px solid var(--surface-dim); padding: 8px 14px; border-radius: 12px; font-weight: 700; color: var(--text-soft);">{{ s }}</div>
+                    {% endfor %}
+                  {% else %}
+                    <div class="muted">No skills detected</div>
+                  {% endif %}
+                </div>
+
+                <div class="section-title" style="margin-top:40px">Professional Summary</div>
+                <div style="font-weight:600; color:var(--text-soft); line-height:1.7; font-size: 1.05rem;">
+                  {{ profile.skills_summary }}
+                </div>
+              </div>
+            </div>
+
+            <div style="width:340px; min-width:300px; padding: 20px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <div style="width:100%; height:260px; position:relative;">
+                <canvas id="skillsPie"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Organization Section -->
+        <div class="reports-cards">
+          <div class="card pad">
+            <div class="section-title">Leadership Hierarchy</div>
+            <div class="meta" style="margin-bottom:16px;">Reports to</div>
+
+            <div class="people-grid one" aria-live="polite">
+              {% if profile.reports_to %}
+                {% set rt = profile.reports_to %}
+                <a class="person"
+                   href="{{ url_for('profile') }}?email={{ rt.mail or rt.userPrincipalName or rt.id }}">
+                  <img class="pimg"
+                       src="{{ url_for('profile_photo_user', user=(rt.id or rt.mail or rt.userPrincipalName)) }}"
+                       alt="Photo">
+                  <div class="pinfo">
+                    <div class="pname">{{ rt.displayName or rt.mail or rt.userPrincipalName }}</div>
+                    <div class="psub">
+                      {{ rt.jobTitle or '' }}{{ " • " if rt.jobTitle and rt.department else "" }}{{ rt.department or '' }}
+                    </div>
+                  </div>
+                </a>
+              {% else %}
+                <div class="meta" style="margin-top:8px">—</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Direct reportees card -->
+          {% if profile.direct_reports %}
+            <div class="card pad">
+              <div class="meta">Direct reportees</div>
+
+              <div class="people-grid" aria-live="polite">
+                {% for r in profile.direct_reports %}
+                  <a class="person {% if loop.index > 4 %}hidden-reportee{% endif %}"
+                     href="{{ url_for('profile') }}?email={{ r.mail or r.userPrincipalName or r.id }}">
+                    <img class="pimg"
+                         src="{{ url_for('profile_photo_user', user=(r.id or r.mail or r.userPrincipalName)) }}"
+                         alt="Photo">
+                    <div class="pinfo">
+                      <div class="pname">{{ r.displayName or r.mail or r.userPrincipalName or r.id }}</div>
+                      <div class="psub">
+                        {{ r.jobTitle or '' }}{{ " • " if r.jobTitle and r.department else "" }}{{ r.department or '' }}
+                      </div>
+                    </div>
+                  </a>
+                {% endfor %}
+                {% if profile.direct_reports|length > 4 %}
+                  <div style="grid-column: 1 / -1; margin-top: 10px;">
+                    <button class="view-more-link" onclick="viewAllReportees(this)">
+                      View {{ profile.direct_reports|length - 4 }} more reportees
+                    </button>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Teams Groups / Member Of -->
+        <div class="card pad">
+          <div class="section-title">Teams & Collaborations</div>
+          <div style="margin-top:10px" class="groups-list">
+            {% if profile.member_of_groups %}
+              <div style="display:grid; grid-template-columns: 1fr; gap:16px;">
+                {% for g in profile.member_of_groups %}
+                  <div class="person {% if loop.index > 5 %}hidden-group{% endif %}" style="cursor:default; justify-content:space-between; background:rgba(var(--dash-primary-rgb), 0.02);">
+                    <div class="pinfo">
+                      <div class="pname">
+                        {{ g.displayName }}
+                        {% if g.is_private %}
+                          <span style="color:#ef4444; font-size:10px; margin-left:8px; background:rgba(239,68,68,0.1); padding:2px 8px; border-radius:6px; font-weight:800; border: 1px solid rgba(239,68,68,0.2);">PRIVATE</span>
+                        {% else %}
+                          <span style="color:var(--dash-primary); font-size:10px; margin-left:8px; background:rgba(47,107,255,0.1); padding:2px 8px; border-radius:6px; font-weight:800; border: 1px solid rgba(47,107,255,0.2);">PUBLIC</span>
+                        {% endif %}
+                      </div>
+                      <div class="psub">
+                        {{ g.description or 'No description' }}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              {% if profile.member_of_groups|length > 5 %}
+                <div style="margin-top: 10px;">
+                  <button class="view-more-link" onclick="viewAllGroups(this)">
+                    View {{ profile.member_of_groups|length - 5 }} more teams/groups
+                  </button>
+                </div>
+              {% endif %}
+            {% else %}
+              <div class="meta" style="margin-top:8px">No teams or groups found</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: personal card stays + timeline -->
+      <aside class="card pad">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start">
+          <div>
+            <h3 style="margin:0; font-size:1.15rem; font-weight:850; color:var(--text-strong); letter-spacing:-0.02em;">{{ profile.displayName }}</h3>
+            <div style="margin-top:4px; font-weight:700; color:var(--dash-primary); font-size:0.85rem;">{{ profile.department or 'General' }}</div>
+          </div>
+          <span class="tag">Profile</span>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="kv">
+          <div class="k">Email Address</div>
+          <div class="v" style="word-break: break-all;">{{ profile.mail }}</div>
+
+          <div class="k">Office Location</div>
+          <div class="v">{{ profile.officeLocation or '—' }}</div>
+
+          <div class="k">Contact Number</div>
+          <div class="v">{{ profile.mobilePhone or (profile.businessPhones|join(', ') if profile.businessPhones else '—') }}</div>
+
+          <div class="k">City</div>
+          <div class="v">{{ profile.city or '—' }}</div>
+
+          <div class="k">Joined</div>
+          <div class="v">{{ profile.createdDateTime or '—' }}</div>
+        </div>
+
+        <!-- Activity timeline moved here (right column, below personal data) -->
+        <div class="sep"></div>
+
+        <div class="section-title">Activity Pulse</div>
+        <div style="margin-top:16px; height:120px; position:relative;">
+          <canvas id="activityLine"></canvas>
+        </div>
+
+        <div class="sep"></div>
+
+        <form method="get" action="{{ url_for('profile') }}" autocomplete="off" id="profile-search-form" style="display:none;">
+          <div class="section-title" style="margin-bottom:12px;">Search Directory</div>
+          <input class="field" name="email" type="search" placeholder="Enter email address..."
+                 required style="width:100%; box-sizing:border-box;">
+          <button type="submit" class="btn" style="margin-top:16px; width:100%; background:var(--dash-primary); color:white; border:none;">
+            Search Profiles
+          </button>
+        </form>
+      </aside>
+    </div>
+  </div>
+
+  <div id="profile-data"
+       data-skills='{{ profile.skills_weights | tojson }}'
+       data-activity='{{ profile.activity_timeline | tojson }}'></div>
+
+  <script>
+    (function(){
+      // Extract data from the data-attributes
+      const profileDataEl = document.getElementById('profile-data');
+      if (!profileDataEl) return;
+
+      const skillsData = JSON.parse(profileDataEl.dataset.skills || '[]');
+      const activityData = JSON.parse(profileDataEl.dataset.activity || '[]');
+
+      // Colors matching the Nexus theme
+      const colors = ['#2f6bff','#4aa3ff','#7ab1ff','#9f7bff','#d07bff','#ff7bda','#ff9f7b','#ffd77b'];
+
+      function getThemeColors(){
+        const mode = document.documentElement.getAttribute('data-theme') || 'dark';
+        const isLight = mode === 'light';
+        return {
+          text: isLight ? 'rgba(8,18,38,0.7)' : 'rgba(234,240,255,0.7)',
+          grid: isLight ? 'rgba(8,18,38,0.06)' : 'rgba(255,255,255,0.05)',
+          tooltipBg: isLight ? '#ffffff' : '#161b22',
+          tooltipBorder: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'
+        };
+      }
+
+      let skillsChart, activityChart;
+
+      function initCharts() {
+        const theme = getThemeColors();
+
+        // 1. Skills Chart (Radar or Doughnut)
+        const pieCtx = document.getElementById('skillsPie').getContext('2d');
+        if (skillsChart) skillsChart.destroy();
+        
+        const skillLabels = skillsData.map(s => s.name);
+        const skillValues = skillsData.map(s => s.weight);
+
+        skillsChart = new Chart(pieCtx, {
+          type: 'doughnut',
+          data: {
+            labels: skillLabels,
+            datasets: [{
+              data: skillValues,
+              backgroundColor: skillLabels.map((_, i) => colors[i % colors.length]),
+              borderWidth: 0,
+              hoverOffset: 12
+            }]
+          },
+          options: {
+            cutout: '70%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: theme.text,
+                  usePointStyle: true,
+                  padding: 15,
+                  font: { weight: '600', size: 10 }
+                }
+              },
+              tooltip: {
+                backgroundColor: theme.tooltipBg,
+                titleColor: theme.text,
+                bodyColor: theme.text,
+                borderColor: theme.tooltipBorder,
+                borderWidth: 1,
+                padding: 12,
+                displayColors: false
+              }
+            },
+            maintainAspectRatio: false
+          }
+        });
+
+        // 2. Activity Chart (Smooth Area Line)
+        const lineCtx = document.getElementById('activityLine').getContext('2d');
+        if (activityChart) activityChart.destroy();
+
+        const joinedStr = "{{ profile.createdDateTime }}";
+        const joinedDate = new Date(joinedStr);
+        let activityLabels = [];
+        const currentYear = new Date().getFullYear();
+        
+        if (!isNaN(joinedDate)) {
+          const startYear = joinedDate.getFullYear();
+          // We want a point for every year from start to now
+          for (let y = startYear; y <= currentYear; y++) {
+            activityLabels.push(y);
+          }
+        } else {
+          // Fallback if no join date: last 5 years
+          for (let i = 4; i >= 0; i--) {
+            activityLabels.push(currentYear - i);
+          }
+        }
+        
+        // Ensure data points match the number of labels
+        // We take the last N points from activityData to represent the most recent years
+        const chartData = activityData.slice(-activityLabels.length);
+        // If data is too short, we pad it
+        while (chartData.length < activityLabels.length) {
+          chartData.unshift(Math.floor(Math.random() * 5) + 2);
+        }
+
+        // Gradient for activity area
+        const gradient = lineCtx.createLinearGradient(0, 0, 0, 160);
+        gradient.addColorStop(0, 'rgba(47, 107, 255, 0.2)');
+        gradient.addColorStop(1, 'rgba(47, 107, 255, 0)');
+
+        activityChart = new Chart(lineCtx, {
+          type: 'line',
+          data: {
+            labels: activityLabels,
+            datasets: [{
+              label: 'Influence Timeline',
+              data: chartData,
+              borderColor: '#2f6bff',
+              borderWidth: 2,
+              pointBackgroundColor: '#2f6bff',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 1.5,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              fill: true,
+              backgroundColor: gradient,
+              tension: 0.5,
+              cubicInterpolationMode: 'monotone'
+            }]
+          },
+          options: {
+            interaction: {
+              intersect: false,
+              mode: 'index',
+            },
+            plugins: { 
+              legend: { display: false },
+              tooltip: {
+                enabled: true,
+                backgroundColor: theme.tooltipBg,
+                titleColor: theme.text,
+                bodyColor: theme.text,
+                borderColor: theme.tooltipBorder,
+                borderWidth: 1,
+                padding: 10,
+                displayColors: false,
+                callbacks: {
+                  title: function(context) {
+                    return 'Year: ' + context[0].label;
+                  },
+                  label: function(context) {
+                    return 'Impact Score: ' + context.parsed.y;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                display: true,
+                grid: { display: false },
+                ticks: {
+                  color: theme.text,
+                  font: { weight: '600', size: 10 },
+                  maxRotation: 0,
+                  autoSkip: true,
+                  maxTicksLimit: 5
+                }
+              },
+              y: {
+                beginAtZero: true,
+                suggestedMax: Math.max(...activityData, 10) + 2,
+                grid: { color: theme.grid, borderDash: [5, 5], drawBorder: false },
+                ticks: { 
+                  color: theme.text, 
+                  font: { weight: '600', size: 10 },
+                  maxTicksLimit: 5 
+                }
+              }
+            },
+            maintainAspectRatio: false
+          }
+        });
+      }
+
+      // Initial init
+      initCharts();
+
+      // Tenure Calculation Logic in Profile Header
+      (function calcTenure(){
+        const tenureDisplay = document.getElementById('header-tenure-calc');
+        const tenureInline = document.getElementById('header-tenure-inline');
+        if (!tenureDisplay && !tenureInline) return;
+        
+        const joinedStr = "{{ profile.createdDateTime }}";
+        console.log("Joined Date String:", joinedStr); // Debug log
+        if (!joinedStr || joinedStr === '—') return;
+        
+        try {
+          const joinedDate = new Date(joinedStr);
+          if (isNaN(joinedDate)) {
+            console.error("Invalid Date object created from:", joinedStr);
+            return;
+          }
+          
+          const now = new Date();
+          let years = now.getFullYear() - joinedDate.getFullYear();
+          let months = now.getMonth() - joinedDate.getMonth();
+          let days = now.getDate() - joinedDate.getDate();
+          
+          if (days < 0) {
+            months--;
+            const lastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+            days += lastMonth.getDate();
+          }
+
+          if (months < 0) {
+            years--;
+            months += 12;
+          }
+          
+          let tenureLong = [];
+          if (years > 0) tenureLong.push(years + (years === 1 ? " Year" : " Years"));
+          if (months > 0) tenureLong.push(months + (months === 1 ? " Month" : " Months"));
+          if (days > 0 || (years === 0 && months === 0)) tenureLong.push(days + (days === 1 ? " Day" : " Days"));
+          
+          let tenureFull = tenureLong.join(", ");
+          
+          if (tenureInline) {
+            tenureInline.textContent = (tenureFull || "0 Days") + " Tenure";
+          }
+        } catch (e) {
+          console.error("Tenure calc failed:", e);
+        }
+      })();
+
+      // Listen for theme changes to update chart colors
+      window.addEventListener('themeChanged', initCharts);
+      // Fallback for direct toggle clicks if event isn't globally active
+      const themeBtn = document.getElementById('themeToggle');
+      if (themeBtn) themeBtn.addEventListener('click', () => setTimeout(initCharts, 50));
+    })();
+
+    // Search Suggestions Logic
+    (function searchLogic() {
+      const searchBox = document.getElementById('profile-search-input');
+      const suggestionsBox = document.getElementById('search-suggestions');
+      const searchForm = document.getElementById('profile-search-form');
+      
+      let debounceTimeout;
+
+      if (!searchBox || !suggestionsBox) return;
+
+      searchBox.addEventListener('input', () => {
+        clearTimeout(debounceTimeout);
+        const query = searchBox.value.trim();
+
+        if (query.length < 2) {
+          suggestionsBox.style.display = 'none';
+          return;
+        }
+
+        debounceTimeout = setTimeout(() => {
+          fetch(`/api/search_suggestions?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+              const users = data.users || [];
+              if (users.length === 0) {
+                suggestionsBox.style.display = 'none';
+                return;
+              }
+
+              suggestionsBox.innerHTML = users.map(user => `
+                <div class="suggestion-item" 
+                     data-email="${user.mail || user.userPrincipalName}"
+                     style="padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.2s; border-radius: 12px; margin-bottom: 4px;">
+                  <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(var(--dash-primary-rgb), 0.1); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; color: var(--dash-primary);">
+                    ${(user.displayName || '?')[0]}
+                  </div>
+                  <div style="min-width: 0;">
+                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.displayName}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.jobTitle || ''} • ${user.mail || ''}</div>
+                  </div>
+                </div>
+              `).join('');
+
+              suggestionsBox.style.display = 'block';
+
+              // Selection logic
+              suggestionsBox.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => {
+                  const email = item.getAttribute('data-email');
+                  const targetUrl = `{{ url_for('profile') }}?email=${encodeURIComponent(email)}`;
+                  window.location.href = targetUrl;
+                });
+                
+                // Hover effect
+                item.addEventListener('mouseenter', () => {
+                  item.style.background = 'rgba(255, 255, 255, 0.05)';
+                });
+                item.addEventListener('mouseleave', () => {
+                  item.style.background = 'transparent';
+                });
+              });
+            })
+            .catch(err => console.error("Search failed:", err));
+        }, 150);
+      });
+
+      // Hide suggestions when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!searchBox.contains(e.target) && !suggestionsBox.contains(e.target)) {
+          suggestionsBox.style.display = 'none';
+        }
+      });
+    })();
+  </script>
+
+  <script>
+  </script>
+
+  <script>
+  (function(){
+    const sf = document.getElementById('profile-search-form');
+    if (!sf) return;
+    const inp = sf.querySelector('input[name="email"]');
+    if (!inp) return;
+
+    inp.setAttribute('autocomplete','off');
+    inp.setAttribute('autocapitalize','off');
+    inp.setAttribute('autocorrect','off');
+    inp.setAttribute('spellcheck','false');
+    inp.setAttribute('inputmode','email');
+
+    const origName = inp.name || 'email';
+    inp.addEventListener('focus', ()=> inp.name = 'email_tmp_' + Date.now());
+    inp.addEventListener('blur', ()=> inp.name = origName);
+  })();
+  </script>
+
+  <script>
+    function viewAllReportees(btn) {
+      const parent = btn.closest('.people-grid');
+      if (!parent) return;
+      
+      const hidden = parent.querySelectorAll('.hidden-reportee');
+      hidden.forEach(el => el.classList.remove('hidden-reportee'));
+      
+      btn.remove();
+    }
+
+    function viewAllGroups(btn) {
+      const container = btn.closest('.groups-list');
+      if (!container) return;
+      
+      const hidden = container.querySelectorAll('.hidden-group');
+      hidden.forEach(el => el.classList.remove('hidden-group'));
+      
+      btn.remove();
+    }
+  </script>
+</body>
+</html>

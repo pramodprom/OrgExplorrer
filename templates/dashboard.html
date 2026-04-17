@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Nexus Dashboard</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!-- Theme (dark/light) applied ASAP to avoid flash -->
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+
+    <style>
+      /* ==================== DASHBOARD REFRESH ==================== */
+      :root {
+        --dash-primary: #2f6bff;
+        --dash-primary-rgb: 47, 107, 255;
+      }
+
+      body { padding-top: 80px; } /* Space for fixed navbar */
+
+      .container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+      .dash-hero {
+        position: relative;
+        padding: 40px 0 40px;
+        overflow: visible;
+      }
+
+      /* Living Network Background (Constant Fade) */
+      /* Removed duplicate body::before as it is now in app.css */
+
+      .dash-content { position: relative; z-index: 1; }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 16px;
+        border-radius: 20px;
+        background: rgba(var(--dash-primary-rgb), 0.1);
+        border: 1px solid rgba(var(--dash-primary-rgb), 0.2);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--dash-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 24px;
+      }
+
+      .dash-head {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+        margin-bottom: 48px;
+      }
+
+      .profile-photo-wrapper {
+        position: relative;
+        flex-shrink: 0;
+      }
+
+      .profile-photo {
+        width: 140px;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 32px;
+        border: 4px solid var(--surface);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+      }
+
+      .status-ring {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 24px;
+        height: 24px;
+        background: #10b981;
+        border: 4px solid var(--surface);
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      }
+      
+      .dash-title h1 {
+        font-size: clamp(2.2rem, 4vw, 3rem);
+        font-weight: 850;
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+        margin-bottom: 8px;
+        color: var(--on-bg);
+      }
+      
+      .welcome-accent { color: var(--dash-primary); -webkit-text-fill-color: var(--dash-primary); }
+
+      .dash-title p {
+        font-size: 1.05rem;
+        color: var(--on-surface);
+        opacity: 0.7;
+        max-width: 650px;
+        line-height: 1.5;
+      }
+
+      /* Quick Stats Grid */
+      .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 48px;
+      }
+
+      .stat-card {
+        background: var(--surface);
+        padding: 24px;
+        border-radius: 24px;
+        border: 1px solid var(--surface-dim);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: transform 0.3s ease;
+      }
+      .stat-card:hover { transform: translateY(-5px); }
+
+      .stat-card .label { font-size: 0.8rem; font-weight: 700; color: var(--on-surface); opacity: 0.5; text-transform: uppercase; letter-spacing: 0.05em; }
+      .stat-card .value { font-size: 1.8rem; font-weight: 850; color: var(--on-bg); letter-spacing: -0.02em; }
+      .stat-card .trend { font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+      .trend.up { color: #10b981; }
+
+      /* Action Grid */
+      .section-label {
+        font-size: 0.9rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 24px;
+        color: var(--on-surface);
+        opacity: 0.4;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .section-label::after { content: ""; flex: 1; height: 1px; background: var(--surface-dim); }
+
+      .action-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+      }
+      
+      @media (max-width: 1100px) {
+        .action-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      @media (max-width: 600px) {
+        .action-grid { grid-template-columns: 1fr; }
+      }
+
+      .action-tile {
+        background: var(--surface);
+        border: 1px solid var(--surface-dim);
+        border-radius: 28px;
+        padding: 32px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .action-tile::before {
+        content: "";
+        position: absolute;
+        top: 0; right: 0;
+        width: 120px; height: 120px;
+        background: radial-gradient(circle at 100% 0%, rgba(var(--dash-primary-rgb), 0.05), transparent 70%);
+      }
+
+      .action-tile:hover {
+        transform: translateY(-8px);
+        border-color: var(--dash-primary);
+        box-shadow: 0 30px 60px rgba(var(--dash-primary-rgb), 0.12);
+      }
+
+      .tile-icon {
+        width: 56px;
+        height: 56px;
+        background: rgba(var(--dash-primary-rgb), 0.08);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dash-primary);
+        transition: all 0.3s ease;
+      }
+
+      .action-tile:hover .tile-icon {
+        background: var(--dash-primary);
+        color: white;
+        transform: scale(1.1) rotate(-5deg);
+      }
+
+      .tile-content h3 { font-size: 1.25rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.02em; }
+      .tile-content p { font-size: 0.95rem; line-height: 1.6; color: var(--on-surface); opacity: 0.6; }
+
+      .tile-footer {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--dash-primary);
+      }
+
+      /* Animations */
+      @keyframes reveal {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .reveal { animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+      .delay-1 { animation-delay: 0.1s; }
+      .delay-2 { animation-delay: 0.2s; }
+      .delay-3 { animation-delay: 0.3s; }
+
+      /* Dashboard main section: make it feel like a hero surface, not a "big card" */
+      .dash-card{
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      html[data-theme="light"] a.tile{
+        background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(236,242,255,.82));
+        box-shadow: 0 14px 40px rgba(8,18,38,.10);
+      }
+      html[data-theme="light"] a.tile:hover{
+        background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(236,242,255,.88));
+      }
+
+      /* Modal (dashboard-specific) */
+      .modal-backdrop{
+        position: fixed; inset: 0;
+         background: rgba(0,0,0,.55);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        display:none;
+        z-index: 99999;
+        align-items:center;
+        justify-content:center;
+        padding: 16px;
+      }
+        html[data-theme="light"] .modal-backdrop{ background: rgba(0,0,0,.35); }
+
+        .modal{
+          width:min(560px, 96vw);
+          background: color-mix(in srgb, var(--card) 92%, transparent);
+          border: 1px solid var(--stroke);
+          border-radius: 14px;
+          box-shadow: 0 20px 60px rgba(0,0,0,.55);
+          padding: 14px;
+          backdrop-filter: blur(10px);
+          color: var(--text-strong);
+        }
+  .modal h3{ margin:0; font-size:16px; font-weight:750; color: var(--text-strong); }
+  .modal p{ margin:8px 0 0; color: var(--text-soft); font-size:13px; font-weight:550; line-height:1.6; }
+      .modal .field{
+        width:100%;
+        margin-top: 12px;
+        padding: 12px 12px;
+        border-radius: 12px;
+        background: var(--field);
+        border: 1px solid var(--stroke);
+        color: var(--text-strong);
+        font-size: 13px;
+      }
+      .modal .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; }
+      .modal .err{ margin-top:10px; color: var(--danger); font-size:12.5px; font-weight:600; display:none; }
+    </style>
+</head>
+<body>
+    {% include '_navbar.html' %}
+    <div class="container">
+      <section class="dash-hero">
+        <div class="dash-content">
+          <div class="hero-badge reveal">
+            <span class="status-ring" style="position:static; width:8px; height:8px; display:inline-block; margin-right:8px; border:none;"></span>
+            Active Session
+          </div>
+          
+          <div class="dash-head reveal delay-1">
+            <div class="profile-photo-wrapper">
+              <img class="profile-photo" src="{{ url_for('profile_photo_user') }}" alt="Profile Photo">
+              
+            </div>
+            <div class="dash-title">
+              <h1>Welcome, <span class="welcome-accent">{{ user.display_name or 'User' }}</span></h1>
+              <div class="sub">Signed in as: <strong style="color:var(--text-strong)">{{ user.email }}</strong> 
+                 <p>Explore your organization with rich profiles, hierarchy view, data explorer, and insights  all in one place.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="stats-summary reveal delay-2">
+            <div class="stat-card">
+              <span class="label">Session Status</span>
+              <span class="value" id="dashTokenLeft" style="font-size: 1.4rem;">—</span>
+              <span class="trend up">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                Secure
+              </span>
+            </div>
+            <div class="stat-card">
+              <span class="label">Connected Tenant</span>
+              <span class="value" style="font-size: 1.2rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ user.email.split('@')[-1]|upper }}</span>
+              <span class="trend">Microsoft 365</span>
+            </div>
+            
+            
+
+            <div class="stat-card">
+              <span class="label">Quick Actions</span>
+              <div style="display:flex; gap:8px; margin-top:4px;">
+                <button onclick="openTokenModal()" class="btn-refresh" style="background:none; border:1px solid var(--surface-dim); border-radius:8px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; color:var(--dash-primary);">REFRESH your token here!</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Core Navigator -->
+          <div class="section-label reveal delay-3">Workspace Navigator</div>
+          <div class="action-grid reveal delay-3">
+            
+            <a href="{{ url_for('employees') }}" class="action-tile">
+              <div class="tile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              </div>
+              <div class="tile-content">
+                <h3>Data Explorer</h3>
+                <p>Filter, search, and export employee data with custom field selection.</p>
+              </div>
+              <div class="tile-footer">
+                <span>Access Directory</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+            </a>
+
+            <a href="{{ url_for('hierarchy') }}" class="action-tile">
+              <div class="tile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              </div>
+              <div class="tile-content">
+                <h3>Visual Hierarchy</h3>
+                <p>Navigate complex reporting structures with an interactive org chart view.</p>
+              </div>
+              <div class="tile-footer">
+                <span>View Org Chart</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+            </a>
+
+            <a href="{{ url_for('profile') }}" class="action-tile">
+              <div class="tile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+              </div>
+              <div class="tile-content">
+                <h3>Personal Profile</h3>
+                <p>View your Microsoft 365 identity, including skills, groups, and coworkers.</p>
+              </div>
+              <div class="tile-footer">
+                <span>My Identity</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+            </a>
+
+            <a href="{{ url_for('insights') }}" class="action-tile">
+              <div class="tile-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              </div>
+              <div class="tile-content">
+                <h3>Org Insights</h3>
+                <p>Advanced analytics and distribution charts for department headcounts.</p>
+              </div>
+              <div class="tile-footer">
+                <span>View Analytics</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+            </a>
+
+          </div>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- Token refresh modal -->
+    <div id="tokenModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="tokenModalTitle">
+      <div class="modal">
+        <h3 id="tokenModalTitle">Session expired</h3>
+        <p>Your access token has expired. Enter a new token to continue.</p>
+        <textarea id="newTokenInput" class="field" rows="5" placeholder="Paste new Microsoft Graph access token"></textarea>
+        <div id="tokenModalErr" class="err"></div>
+        <div class="actions">
+          <button id="tokenModalLogout" class="btn ghost" type="button">Logout</button>
+          <button id="tokenModalSave" class="btn" type="button">Save token</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Ensure tokenExp is always valid JS (number or null) by encoding via tojson.
+      const tokenExp = JSON.parse('{{ session.get("token_exp")|default(none)|tojson }}');
+
+      // Dashboard token strip countdown
+      (function(){
+        const el = document.getElementById('dashTokenLeft');
+        if (!el) return;
+
+        if (!tokenExp || typeof tokenExp !== 'number'){
+          el.textContent = '—';
+          return;
+        }
+
+        function fmt(secs){
+          const s = Math.max(0, Math.floor(secs));
+          const h = Math.floor(s / 3600);
+          const m = Math.floor((s % 3600) / 60);
+          const ss = s % 60;
+          if (h > 0) return `${h}h ${String(m).padStart(2,'0')}m`;
+          if (m > 0) return `${m}m ${String(ss).padStart(2,'0')}s`;
+          return `${ss}s`;
+        }
+
+        function tick(){
+          const now = Date.now()/1000;
+          const left = tokenExp - now;
+          el.textContent = fmt(left);
+        }
+        tick();
+        setInterval(tick, 1000);
+      })();
+
+      const backdrop = document.getElementById('tokenModalBackdrop');
+      const inputEl = document.getElementById('newTokenInput');
+      const errEl = document.getElementById('tokenModalErr');
+      const btnSave = document.getElementById('tokenModalSave');
+      const btnLogout = document.getElementById('tokenModalLogout');
+
+      async function refreshToken(newToken){
+        const res = await fetch("{{ url_for('token_refresh') }}", {
+          method: "POST",
+          headers: {
+            "Content-Type":"application/json",
+            "Accept":"application/json"
+          },
+          body: JSON.stringify({ token: newToken })
+        });
+
+        // Robust parsing: server might return HTML if something intercepts/redirects.
+        const txt = await res.text();
+        let data;
+        try { data = JSON.parse(txt); } catch { data = { ok:false, error: txt || "Invalid response" }; }
+
+        if (!res.ok || !data.ok){
+          throw new Error(data.error || ("Refresh failed (HTTP " + res.status + ")"));
+        }
+        return data;
+      }
+
+      function closeTokenModal(){
+        if (!backdrop) return;
+        backdrop.style.display = "none";
+        clearErr();
+      }
+
+      function openTokenModal(){
+        if (!backdrop) return;
+        backdrop.style.display = "flex";
+        setTimeout(() => inputEl && inputEl.focus(), 40);
+      }
+
+      // Close on backdrop click
+      backdrop && backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) closeTokenModal();
+      });
+
+      function showErr(msg){
+        if (!errEl) return;
+        errEl.textContent = msg;
+        errEl.style.display = "block";
+      }
+
+      function clearErr(){
+        if (!errEl) return;
+        errEl.textContent = "";
+        errEl.style.display = "none";
+      }
+
+      function isExpired(exp){
+        if (exp === null) return false;
+        const now = Math.floor(Date.now()/1000);
+        return now >= Number(exp);
+      }
+
+      // Open popup immediately if expired (so user can continue)
+      if (isExpired(tokenExp)) openTokenModal();
+
+      btnSave && btnSave.addEventListener("click", async () => {
+        clearErr();
+        const newToken = (inputEl && inputEl.value ? inputEl.value : "").trim();
+        if (!newToken){
+          showErr("Please paste a token.");
+          return;
+        }
+
+        btnSave.disabled = true;
+        try{
+          await refreshToken(newToken);
+
+          // IMPORTANT: Capture the redirect target then clear it
+          const next = sessionStorage.getItem("nextAfterTokenRefresh");
+          sessionStorage.removeItem("nextAfterTokenRefresh");
+
+          // Use the stored 'next' URL, otherwise fallback to the current page (refreshes current view)
+          window.location.href = next || window.location.href;
+        }catch(e){
+          showErr(String(e && e.message ? e.message : e));
+        }finally{
+          btnSave.disabled = false;
+        }
+      });
+
+      btnLogout && btnLogout.addEventListener("click", () => {
+        const f = document.createElement("form");
+        f.method = "POST";
+        f.action = "{{ url_for('logout') }}";
+        document.body.appendChild(f);
+        f.submit();
+      });
+
+      // If user gets redirected to dashboard due to expiry, remember the page they came from
+      // so after refresh we can continue.
+      (function rememberNext(){
+        // If you're already on dashboard, nothing to remember.
+        // But if server redirected here, referrer will likely have the blocked URL.
+        try{
+          const ref = document.referrer || "";
+          const here = window.location.href;
+          if (ref && ref !== here && !ref.includes("/login") && !ref.includes("/dashboard")){
+            sessionStorage.setItem("nextAfterTokenRefresh", ref);
+          }
+        }catch{}
+      })();
+
+      // Dashboard Stat Sync
+      const dashTimer = document.getElementById('dashTokenLeft');
+      if (dashTimer) {
+        setInterval(() => {
+          const navTimer = document.getElementById('tokenExpiryTime');
+          if (navTimer && navTimer.textContent !== '—' && navTimer.textContent !== 'Expired') {
+            dashTimer.textContent = navTimer.textContent;
+            
+            // Red alert for low time
+            if (navTimer.textContent.includes('00:') && parseInt(navTimer.textContent.split(':')[1]) < 10) {
+              dashTimer.style.color = '#ef4444';
+            } else {
+              dashTimer.style.color = 'inherit';
+            }
+          }
+        }, 1000);
+      }
+    </script>
+</body>
+</html>

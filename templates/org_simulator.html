@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Org Simulator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <!-- Theme (dark/light) applied ASAP to avoid flash -->
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  <style>
+    body { padding-top: 100px; } /* Space for navbar */
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 40px; }
+
+    .page-title{ margin:0; font-size: clamp(26px, 3vw, 40px); letter-spacing:-.03em; font-weight: 950; }
+    .page-sub{ margin: 8px 0 0; color: var(--muted); line-height: 1.65; }
+
+    .searchWrap{ position:relative; }
+    .suggestions{
+      position:absolute;
+      left:0; right:0;
+      top: calc(100% + 6px);
+      z-index: 9999;
+  background: color-mix(in oklab, var(--card) 88%, transparent);
+  border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+      overflow:hidden;
+      max-height: 320px;
+      overflow-y:auto;
+      backdrop-filter: blur(10px);
+    }
+    .suggestionItem{
+      padding: 10px 12px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+  .suggestionItem:hover{ background: var(--glass); }
+    .suggestionName{ font-weight: 900; }
+    .suggestionMeta{ opacity:.8; font-size: 12px; }
+
+    .top-nav{ display:flex; align-items:center; justify-content:center; margin-top: 2px; }
+    .top-nav-inner{
+      display:flex; align-items:center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      max-width: 100%;
+      overflow:auto;
+    }
+    .top-nav a{
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      padding: 10px 14px;
+      border-radius: 999px;
+  color: var(--text-soft);
+      font-weight: 700;
+      border: 1px solid transparent;
+      transition: background .12s ease, border-color .12s ease, transform .12s ease, color .12s ease;
+      white-space:nowrap;
+    }
+  .top-nav a:hover{ background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.10); transform: translateY(-1px); color: var(--text-strong); }
+    .top-nav a.active{
+  background: linear-gradient(135deg, rgba(16,185,129,.92), rgba(5,150,105,.92));
+      color: #071225;
+      border-color: rgba(255,255,255,.14);
+  box-shadow: 0 12px 26px rgba(16,185,129,.18);
+      font-weight: 800;
+    }
+    .top-nav .sep{ height: 22px; width: 1px; background: rgba(255,255,255,.12); margin: 0 2px; border:none; }
+
+    .grid{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.25fr .85fr;
+      gap: 14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ .grid{ grid-template-columns: 1fr; } }
+
+    .kpi{ display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 980px){ .kpi{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+  .kpi .box{ padding: 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--card); }
+    .kpi .n{ font-weight: 950; font-size: 22px; letter-spacing:-.02em; }
+    .kpi .l{ color: var(--muted2); font-weight: 800; font-size: 12px; margin-top: 4px; text-transform: uppercase; letter-spacing:.08em; }
+
+    .list{ display:flex; flex-direction:column; gap: 8px; margin-top: 10px; }
+    .person{ display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 10px 12px; border-radius: 14px; border:1px solid var(--border); background: var(--card); }
+    .person .a{ display:flex; flex-direction:column; gap: 2px; }
+    .person .name{ font-weight: 900; }
+    .person .meta2{ color: var(--muted2); font-weight: 750; font-size: 12px; }
+
+    /* Hierarchy visual before/after */
+    .compare-container { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+    @media (max-width: 980px) { .compare-container { grid-template-columns: 1fr; } }
+    .tree-box { 
+      background: rgba(var(--dash-primary-rgb), 0.02); 
+      border: 1px solid var(--border); 
+      border-radius: 20px; 
+      padding: 20px; 
+      min-height: 200px;
+      max-height: 500px;
+      overflow: auto;
+    }
+    .tree-node {
+      margin-left: 20px;
+      padding: 8px 12px;
+      border-left: 2px solid rgba(var(--dash-primary-rgb), 0.2);
+      position: relative;
+    }
+    .tree-node::before {
+      content: "";
+      position: absolute;
+      left: -20px;
+      top: 20px;
+      width: 20px;
+      height: 1px;
+      background: rgba(var(--dash-primary-rgb), 0.2);
+    }
+    .node-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+    .node-removed {
+      opacity: 0.5;
+      text-decoration: line-through;
+      border-color: #ef4444 !important;
+      background: rgba(239, 68, 68, 0.05) !important;
+    }
+    .node-orphan {
+       border-color: #f59e0b !important;
+       background: rgba(245, 158, 11, 0.05) !important;
+    }
+
+    .tag{
+      display:inline-flex; align-items:center; gap: 8px;
+      padding: 6px 10px; border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+  color: var(--text-soft);
+      font-weight: 850;
+      font-size: 12px;
+    }
+
+    .small-note{ margin-top: 10px; color: var(--muted2); font-weight: 700; font-size: 12px; line-height: 1.6; }
+
+    select, input[type="text"], input[type="number"]{ width: 100%; }
+
+    .row{ display:flex; gap: 10px; flex-wrap:wrap; align-items:center; }
+    .row > *{ flex: 1; min-width: 220px; }
+
+    .danger-outline{
+      border: 1px solid rgba(255,77,109,.35) !important;
+      background: rgba(255,77,109,.10) !important;
+    }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+
+  {% include '_navbar.html' %}
+
+  <div class="container" style="max-width: 1200px;">
+    <div class="card pad" style="margin-top: 14px;">
+      <div style="display:flex; gap: 14px; align-items:end; justify-content:space-between; flex-wrap:wrap;">
+        <div>
+          <h1 class="page-title">Organization Simulator</h1>
+          <p class="page-sub">This page <strong>does not delete anyone</strong>. It pulls live data from Microsoft Graph (like Graph Explorer) and simulates removals to show impact.</p>
+        </div>
+        <div class="tag"><span class="dot" style="width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));"></span> Live Graph</div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="row">
+        <div class="field">
+          <label>Search employee</label>
+          <div class="searchWrap">
+            <input id="searchBox" type="text" placeholder="Type name or email/UPN..." autocomplete="off" />
+            <div id="suggestions" class="suggestions" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap: 10px; flex-wrap:wrap; margin-top: 12px;">
+        <button class="btn danger" id="removeBtn" type="button">Remove and Analyze Impact</button>
+        <button class="btn ghost" id="resetBtn" type="button">Reset simulation</button>
+      </div>
+
+      <div id="status" class="toast" style="margin-top: 12px; display:none;"></div>
+
+      <!-- Comparison Section -->
+      <div class="card pad" style="margin-top: 24px; border: 1px solid rgba(var(--dash-primary-rgb), 0.15);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 32px;">
+          <div>
+            <div class="section-title" style="margin:0; font-size: 1.1rem; color: var(--text-strong);">Hierarchy Impact Analysis</div>
+            <div class="page-sub" style="font-size: 0.95rem;">Simulate organizational changes to visualize reporting disruptions and identify potential successors.</div>
+          </div>
+        </div>
+        
+        <div class="compare-container">
+          <div class="tree-wrapper">
+            <div class="tag" style="margin-bottom: 16px; background: rgba(var(--dash-primary), 0.08); color: var(--dash-primary); width: 100%; border-radius: 14px; padding: 12px; font-weight: 800; border: 1px solid rgba(var(--dash-primary-rgb), 0.1);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right:8px"><path d="M12 2v20M2 12h20"/></svg>
+              Current State
+            </div>
+            <div id="treeBefore" class="tree-box" style="background: rgba(var(--dash-primary-rgb), 0.01); border-color: rgba(var(--dash-primary-rgb), 0.05);">
+              <div class="muted" style="padding: 60px; text-align: center; font-weight: 700;">
+                Search and select an employee above to start simulation
+              </div>
+            </div>
+          </div>
+          
+          <div class="tree-wrapper">
+            <div class="tag" style="margin-bottom: 16px; background: rgba(16, 185, 129, 0.08); color: #10b981; width: 100%; border-radius: 14px; padding: 12px; font-weight: 800; border: 1px solid rgba(16, 185, 129, 0.1);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right:8px"><polyline points="20 6 9 17 4 12"/></svg>
+              Simulated Future State
+            </div>
+            <div id="treeAfter" class="tree-box" style="background: rgba(16, 185, 129, 0.01); border-color: rgba(16, 185, 129, 0.05);">
+              <div class="muted" style="padding: 60px; text-align: center; font-weight: 700;">
+                Click "Analyze Impact" to generate simulation
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="replacement-suggestions" style="margin-top: 48px; padding-top: 32px; border-top: 1px dashed var(--border); display: none;">
+          <div class="section-title" style="margin-bottom: 24px;">Succession Strategy</div>
+          <div id="suggestions-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 24px;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Nav active state
+      (function syncNavActive(){
+        const links = Array.from(document.querySelectorAll('a[data-nav]'));
+        if (!links.length) return;
+        const path = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+        const isSamePath = (href) => {
+          try {
+            const u = new URL(href, window.location.origin);
+            const p = (u.pathname || '/').replace(/\/+$/, '') || '/';
+            return p === path;
+          } catch { return false; }
+        };
+        for (const a of links) { a.classList.remove('active'); a.removeAttribute('aria-current'); }
+        const active = links.find(a => isSamePath(a.getAttribute('href')));
+        if (active) { active.classList.add('active'); active.setAttribute('aria-current','page'); }
+      })();
+
+      const els = {
+        loadBtn: document.getElementById('loadBtn'),
+        removeBtn: document.getElementById('removeBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        analyzeBtn: document.getElementById('analyzeBtn'),
+        searchBox: document.getElementById('searchBox'),
+        suggestions: document.getElementById('suggestions'),
+        status: document.getElementById('status'),
+        treeBefore: document.getElementById('treeBefore'),
+        treeAfter: document.getElementById('treeAfter'),
+        replacementBox: document.getElementById('replacement-suggestions'),
+        suggestionsList: document.getElementById('suggestions-list'),
+      };
+
+      let nodes = []; // snapshot
+      let removed = new Set();
+      let selectedId = null;
+      let lastSuggestions = [];
+
+      function showStatus(msg, kind){
+        els.status.style.display = 'block';
+        els.status.className = 'toast ' + (kind || '');
+        els.status.textContent = msg;
+      }
+
+      function clearStatus(){
+        els.status.style.display = 'none';
+        els.status.textContent = '';
+        els.status.className = 'toast';
+      }
+
+      function optionKey(u){
+        const name = u.displayName || '(no name)';
+        const mail = u.mail || u.userPrincipalName || '';
+        const dept = u.department ? ` • ${u.department}` : '';
+        return `${name}  —  ${mail}${dept}`;
+      }
+
+      function hideSuggestions(){
+        els.suggestions.style.display = 'none';
+        els.suggestions.innerHTML = '';
+      }
+
+      function renderSuggestions(list){
+        els.suggestions.innerHTML = '';
+        lastSuggestions = (list || []).slice(0, 25);
+        if (!lastSuggestions.length) {
+          hideSuggestions();
+          return;
+        }
+
+        for (const u of lastSuggestions) {
+          const item = document.createElement('div');
+          item.className = 'suggestionItem';
+          item.setAttribute('role', 'button');
+          item.tabIndex = 0;
+
+          const name = document.createElement('div');
+          name.className = 'suggestionName';
+          name.textContent = u.displayName || u.mail || u.userPrincipalName || '(no name)';
+
+          const meta = document.createElement('div');
+          meta.className = 'suggestionMeta';
+          meta.textContent = [u.mail || u.userPrincipalName, u.department, u.jobTitle].filter(Boolean).join(' • ');
+
+          item.appendChild(name);
+          item.appendChild(meta);
+
+          const selectThis = () => {
+            selectedId = u.id;
+            els.searchBox.value = optionKey(u);
+            hideSuggestions();
+            els.removeBtn.click(); // Automatically trigger removal and analysis
+          };
+
+          item.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            selectThis();
+          });
+          item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); selectThis(); }
+          });
+
+          els.suggestions.appendChild(item);
+        }
+
+        els.suggestions.style.display = 'block';
+      }
+
+      async function fetchSuggestions(q){
+        const t = (q || '').trim();
+        if (!t) return [];
+        const res = await fetch(`{{ url_for('org_simulator_search') }}?q=${encodeURIComponent(t)}&limit=25`);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Search failed');
+        return data.items || [];
+      }
+
+      function debounce(fn, wait){
+        let t;
+        return (...args) => {
+          clearTimeout(t);
+          t = setTimeout(() => fn(...args), wait);
+        };
+      }
+
+      async function loadFromGraph(){
+        clearStatus();
+        showStatus('Refreshing org snapshot...', '');
+        const res = await fetch(`{{ url_for('org_simulator_data') }}`);
+        const data = await res.json();
+        if (!data.ok) {
+          showStatus(data.error || 'Failed to load data', 'error');
+          return;
+        }
+        nodes = data.nodes || [];
+        removed = new Set();
+        selectedId = null;
+        hideSuggestions();
+        showStatus(`Org snapshot ready (${nodes.length} users).`, 'ok');
+      }
+
+      async function analyze(){
+        if (!selectedId && removed.size === 0) {
+           showStatus('Search and select someone to simulate removal first.', 'error');
+           return;
+        }
+        clearStatus();
+        showStatus('Analyzing hierarchy impact...', '');
+        
+        const currentRemoved = Array.from(removed);
+        if (selectedId && !removed.has(selectedId)) {
+          currentRemoved.push(selectedId);
+        }
+
+        const res = await fetch(`{{ url_for('org_simulator_analyze') }}` , {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ removed: currentRemoved })
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showStatus(data.error || 'Analyze failed', 'error');
+          return;
+        }
+
+        renderHierarchyComparison(data.ins_original_tree || [], data.ins_simulated_tree || [], new Set(currentRemoved), data.orphans || []);
+        renderReplacements(data.replacements || []);
+        showStatus('Succession analysis complete.', 'ok');
+      }
+
+      function renderReplacements(replacements) {
+        if (!replacements || replacements.length === 0) {
+          els.replacementBox.style.display = 'none';
+          return;
+        }
+        
+        els.replacementBox.style.display = 'block';
+        els.suggestionsList.innerHTML = '';
+        
+        replacements.forEach(r => {
+          const card = document.createElement('div');
+          card.className = 'card pad';
+          card.style.margin = '0';
+          card.style.background = 'rgba(var(--dash-primary-rgb), 0.03)';
+          card.style.border = '1px solid rgba(var(--dash-primary-rgb), 0.1)';
+          
+          let candidatesHtml = r.candidates.map(c => `
+            <div style="display:flex; align-items:center; gap:12px; padding:12px; background:var(--card); border:1px solid var(--border); border-radius:14px; margin-top:10px;">
+              <div style="width:36px; height:36px; border-radius:10px; background:rgba(var(--dash-primary-rgb),0.1); color:var(--dash-primary); display:flex; align-items:center; justify-content:center; font-weight:900;">
+                ${(c.displayName || '?')[0]}
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:800; font-size:14px;">${c.displayName}</div>
+                <div style="font-size:11px; color:var(--muted2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.jobTitle}</div>
+              </div>
+              <div class="tag" style="font-size:10px; opacity:0.8; background:rgba(var(--dash-primary-rgb), 0.05); color:var(--dash-primary); border:none;">${c.type}</div>
+            </div>
+          `).join('');
+
+          card.innerHTML = `
+            <div style="font-size:11px; color:var(--muted2); text-transform:uppercase; font-weight:800; letter-spacing:1px; margin-bottom:4px;">Succession for</div>
+            <div style="font-weight:950; font-size:18px;">${r.manager.displayName}</div>
+            <div style="margin-top:20px; font-weight:800; font-size:13px; color:var(--dash-primary); display:flex; align-items:center; gap:6px;">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+               Top Candidates
+            </div>
+            ${candidatesHtml || '<div class="muted" style="margin-top:10px; font-size:13px;">No suitable internal candidates identified in the immediate chain</div>'}
+          `;
+          els.suggestionsList.appendChild(card);
+        });
+      }
+
+      function createTreeNode(node, removedIds, orphans) {
+        const div = document.createElement('div');
+        div.className = 'tree-node';
+        
+        const content = document.createElement('div');
+        content.className = 'node-content';
+        
+        const isRemoved = removedIds.has(node.id);
+        const isOrphan = orphans.has(node.id);
+
+        if (isRemoved) content.classList.add('node-removed');
+        if (isOrphan) content.classList.add('node-orphan');
+        
+        content.innerHTML = `
+          <div style="font-weight: 800; font-size:13px;">${node.displayName || node.mail}</div>
+          <div style="font-size: 10px; opacity: 0.6; margin-left: 8px;">${node.jobTitle || ''}</div>
+          ${isRemoved ? '<span style="margin-left:auto; font-size:9px; color:#ef4444; font-weight:900; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px;">REMOVED</span>' : ''}
+          ${isOrphan ? '<span style="margin-left:auto; font-size:9px; color:#f59e0b; font-weight:900; background:rgba(245,158,11,0.1); padding:2px 6px; border-radius:4px;">ORPHAN</span>' : ''}
+        `;
+        
+        div.appendChild(content);
+        
+        if (node.children && node.children.length > 0) {
+          node.children.forEach(child => {
+            div.appendChild(createTreeNode(child, removedIds, orphans));
+          });
+        }
+        
+        return div;
+      }
+
+      function renderHierarchyComparison(original, simulated, removedIds, orphans) {
+        els.treeBefore.innerHTML = '';
+        els.treeAfter.innerHTML = '';
+        
+        const orphanSet = new Set(orphans.map(o => o.id));
+
+        if (!original || original.length === 0) {
+          els.treeBefore.innerHTML = '<div class="muted">Hierarchy not found</div>';
+        } else {
+          original.forEach(root => els.treeBefore.appendChild(createTreeNode(root, new Set(), new Set())));
+        }
+        
+        if (!original || original.length === 0) {
+          els.treeAfter.innerHTML = '<div class="muted">Hierarchy collapsed</div>';
+        } else {
+          original.forEach(root => els.treeAfter.appendChild(createTreeNode(root, removedIds, orphanSet)));
+        }
+      }
+
+      els.resetBtn.addEventListener('click', () => {
+        removed = new Set();
+        selectedId = null;
+        els.searchBox.value = '';
+        els.treeBefore.innerHTML = '<div class="muted" style="padding:60px; text-align:center; font-weight: 700;">Search and select an employee above to start simulation</div>';
+        els.treeAfter.innerHTML = '<div class="muted" style="padding:60px; text-align:center; font-weight: 700;">Simulation reset</div>';
+        els.replacementBox.style.display = 'none';
+        showStatus('Simulation cleared.', '');
+      });
+
+      els.removeBtn.addEventListener('click', () => {
+        // Only show error if BOTH selectedId AND removed set are empty
+        if (!selectedId && removed.size === 0) {
+          showStatus('Please search and select an employee from the dropdown first.', 'error');
+          return;
+        }
+        
+        // Add current selection if exists
+        if (selectedId) {
+          removed.add(selectedId);
+          showStatus(`Simulated removal added for: ${els.searchBox.value}. Generating hierarchy...`, 'ok');
+          selectedId = null; // Clear selection after adding to set
+        }
+
+        analyze(); // Automatically run analysis
+      });
+
+      const onSearch = debounce(async () => {
+        const q = (els.searchBox.value || '').trim();
+        if (!q) {
+          hideSuggestions();
+          selectedId = null;
+          return;
+        }
+        try {
+          const list = await fetchSuggestions(q);
+          renderSuggestions(list);
+        } catch (e) {
+          showStatus('Search failed', 'error');
+        }
+      }, 220);
+
+      els.searchBox.addEventListener('input', onSearch);
+
+      document.addEventListener('click', (e) => {
+        if (!els.suggestions.contains(e.target) && e.target !== els.searchBox) {
+          hideSuggestions();
+        }
+      });
+
+      loadFromGraph();
+    })();
+  </script>
+</body>
+</html>

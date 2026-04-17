@@ -1,0 +1,239 @@
+{# Shared app navbar (landing-style). Include with: {% include '_navbar.html' %} #}
+<style>
+  /* ==================== SHARED NAVBAR STYLES (LANDING SYNC) ==================== */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    padding: 14px 48px; display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: var(--font, 'Inter', sans-serif);
+  }
+  
+  html[data-theme="dark"] .navbar {
+    background: rgba(13, 17, 23, 0.82);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .navbar.scrolled {
+    padding: 10px 48px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+  }
+
+  html[data-theme="dark"] .navbar.scrolled {
+    background: rgba(13, 17, 23, 0.95);
+    box-shadow: 0 10px 40px -15px rgba(0, 0, 0, 0.4);
+  }
+
+  .nav-left { display: flex; align-items: center; gap: 12px; }
+  .nav-logo { width: 30px; height: 30px; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .nav-left:hover .nav-logo { transform: rotate(15deg) scale(1.1); }
+  .nav-brand { font-size: 1.15rem; font-weight: 850; color: var(--on-bg); letter-spacing: -0.03em; background: linear-gradient(135deg, #2f6bff, #4aa3ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  
+  .nav-links { display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.04); padding: 4px; border-radius: 14px; border: 1px solid rgba(0,0,0,0.02); }
+  html[data-theme="dark"] .nav-links { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
+  .nav-links-inner { display: flex; align-items: center; gap: 4px; }
+  
+  .nav-link {
+    font-size: 0.82rem; font-weight: 700; color: var(--on-surface); 
+    text-decoration: none; transition: all 0.3s ease;
+    padding: 8px 16px; border-radius: 10px;
+    opacity: 0.7;
+  }
+  
+  .nav-link:hover { opacity: 1; background: rgba(47, 107, 255, 0.08); color: var(--primary, #2f6bff); }
+  .nav-link.active { opacity: 1; background: var(--primary, #2f6bff); color: #fff !important; box-shadow: 0 4px 12px rgba(47, 107, 255, 0.25); }
+
+  .nav-actions { display: flex; align-items: center; gap: 12px; }
+
+  /* User Menu & Theme Toggle */
+  .theme-toggle {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 8px 16px; border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.5);
+    color: var(--on-bg);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: var(--font, 'Inter', sans-serif);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .theme-toggle:hover { transform: translateY(-1px); background: #fff; box-shadow: 0 8px 20px rgba(0,0,0,0.06); border-color: rgba(47, 107, 255, 0.2); }
+  .theme-toggle .icon { width: 16px; height: 16px; }
+  
+  html[data-theme="dark"] .theme-toggle {
+    border-color: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.05);
+    color: rgba(234,240,255,0.9);
+  }
+  html[data-theme="dark"] .theme-toggle:hover { background: rgba(255,255,255,0.1); }
+
+  .nav-cta {
+    padding: 10px 24px; background: linear-gradient(135deg, #2f6bff, #1b4fdc);
+    color: #fff !important; font-size: 0.82rem; font-weight: 700;
+    border: none; border-radius: 12px; cursor: pointer; text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 6px 20px rgba(47, 107, 255, 0.2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(47, 107, 255, 0.3); scale: 1.02; }
+
+  .nav-user { position: relative; }
+  .user-btn {
+    width: 42px; height: 42px; border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.6);
+    color: var(--on-bg); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  html[data-theme="dark"] .user-btn {
+    border-color: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
+  }
+  .user-btn:hover { background: var(--primary, #2f6bff); color: #fff; border-color: transparent; transform: scale(1.05); box-shadow: 0 8px 20px rgba(47, 107, 255, 0.2); }
+
+
+  .user-menu {
+    position: absolute; top: calc(100% + 12px); right: 0; width: 240px;
+    background: var(--surface, #fff); border-radius: 18px;
+    border: 1px solid rgba(0,0,0,0.06); padding: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    transform-origin: top right; z-index: 1001;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
+  html[data-theme="dark"] .user-menu {
+    background: rgba(15, 23, 36, 0.95);
+    border-color: rgba(255,255,255,0.1);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  }
+
+  .user-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 4px; color: var(--on-bg); }
+  .user-meta { font-size: 0.72rem; color: var(--on-surface); opacity: 0.7; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 12px; }
+  html[data-theme="dark"] .user-meta { border-color: rgba(255,255,255,0.1); }
+  
+  .menu-logout {
+    display: block; width: 100%; padding: 10px; border-radius: 10px;
+    background: rgba(255, 74, 74, 0.08); color: #ff4a4a;
+    border: 1px solid rgba(255, 74, 74, 0.1);
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    text-align: center;
+  }
+  .menu-logout:hover { background: #ff4a4a; color: #fff; }
+
+  @media (max-width: 900px) {
+    .navbar { padding: 14px 24px; }
+    .nav-links-inner { display: none; } /* Mobile nav would go here */
+  }
+</style>
+
+<nav class="navbar" id="navbar">
+  <div class="nav-left">
+    <a href="{{ url_for('root') }}" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit">
+      <svg class="nav-logo" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="5" r="2.5" fill="#2f6bff"/>
+        <circle cx="5" cy="19" r="2.5" fill="#4aa3ff"/>
+        <circle cx="19" cy="19" r="2.5" fill="#4aa3ff"/>
+        <line x1="12" y1="7.5" x2="5" y2="16.5" stroke="#2f6bff" stroke-width="1.5" opacity="0.6"/>
+        <line x1="12" y1="7.5" x2="19" y2="16.5" stroke="#2f6bff" stroke-width="1.5" opacity="0.6"/>
+      </svg>
+      <span class="nav-brand">NexUs</span>
+    </a>
+  </div>
+
+  <div class="nav-links" role="navigation" aria-label="Primary">
+    <div class="nav-links-inner">
+      {% if session.get('user') %}
+        <a href="{{ url_for('dashboard') }}" class="nav-link{% if request.endpoint == 'dashboard' %} active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('employees') }}" class="nav-link{% if request.endpoint == 'employees' %} active{% endif %}">Directory</a>
+        <a href="{{ url_for('hierarchy') }}" class="nav-link{% if request.endpoint == 'hierarchy' %} active{% endif %}">Hierarchy</a>
+        <a href="{{ url_for('insights') }}" class="nav-link{% if request.endpoint == 'insights' %} active{% endif %}">Insights</a>
+        <a href="{{ url_for('profile') }}" class="nav-link{% if request.endpoint == 'profile' %} active{% endif %}">Profile</a>
+      {% else %}
+        <a href="{{ url_for('root') }}#features" class="nav-link">Features</a>
+        <a href="{{ url_for('root') }}#how" class="nav-link">How It Works</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="nav-actions">
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">
+      <svg class="icon sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </svg>
+      <svg class="icon moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"></path>
+      </svg>
+      <span class="theme-label">Dark</span>
+    </button>
+
+    {% if session.get('user') %}
+      <div class="nav-user" id="navUser">
+        <button class="user-btn" id="userMenuBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </button>
+
+        <div class="user-menu" id="userMenu" hidden>
+          <div class="user-name">{{ session.get('user', {}).get('display_name') or 'User Account' }}</div>
+          <div class="user-meta" id="tokenMeta">
+            Expires in <span id="tokenTimer">--:--</span>
+          </div>
+          <form method="post" action="{{ url_for('logout') }}" style="margin:0">
+            <button type="submit" class="menu-logout">Logout</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <a href="{{ url_for('root', _anchor='login') }}" class="nav-cta">Sign In</a>
+    {% endif %}
+  </div>
+</nav>
+
+<script>
+  (function(){
+    // Scroll effect
+    window.addEventListener('scroll', () => {
+      const nav = document.getElementById('navbar');
+      if (window.scrollY > 20) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+    });
+
+    // User dropdown logic
+    const btn = document.getElementById('userMenuBtn');
+    const menu = document.getElementById('userMenu');
+    const wrap = document.getElementById('navUser');
+    if (btn && menu) {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        menu.hidden = !menu.hidden;
+        btn.setAttribute('aria-expanded', !menu.hidden);
+      };
+      document.onclick = (e) => { if (!wrap.contains(e.target)) menu.hidden = true; };
+    }
+
+    // Token countdown logic
+    const exp = parseInt('{{ session.get("token_exp", 0) }}');
+    const timer = document.getElementById('tokenTimer');
+
+    if (exp && timer) {
+      function tick() {
+        const left = Math.max(0, exp - Math.floor(Date.now()/1000));
+        const m = Math.floor(left/60);
+        const s = left%60;
+        timer.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+        if (left <= 0) timer.textContent = "Expired";
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+  })();
+</script>

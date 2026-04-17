@@ -1,0 +1,2081 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>{{ (company_name or 'Company') }} Insights</title>
+	<!-- Theme (dark/light) applied ASAP to avoid flash -->
+	<script src="{{ url_for('static', filename='theme.js') }}"></script>
+	<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+	<style>
+	  /* Dashboard visual tokens (kept in sync with dashboard.html) */
+	  :root {
+	    --dash-primary: #2f6bff;
+	    --dash-primary-rgb: 47, 107, 255;
+	  }
+
+	  body { padding-top: 80px; } /* Space for fixed navbar */
+
+	  /* Container / layout - Matched with Employees page */
+	  .container { max-width: 1400px; margin: 0 auto; padding: 0 40px; position: relative; z-index: 1; }
+
+	  /* small visual overrides to align with dashboard tokens */
+	  .sep { height: 1px; background: var(--surface-dim); margin: 20px 0; border: none; }
+	  .field { 
+	    padding: 12px 16px; 
+	    border-radius: 14px; 
+	    border: 1px solid var(--surface-dim); 
+	    background: var(--surface); 
+	    color: var(--text-strong);
+	    font-size: 0.9rem;
+	    font-weight: 500;
+	    transition: all 0.2s ease;
+	  }
+	  .field:focus { 
+	    border-color: var(--dash-primary); 
+	    outline: none; 
+	    box-shadow: 0 0 0 4px rgba(var(--dash-primary-rgb), 0.1); 
+	  }
+	  .muted { color: var(--text-muted); font-size: 0.9rem; }
+
+	  /* Surface & cards align with dashboard */
+	  .card, .card.pad { 
+	    background: var(--surface); 
+	    border: 1px solid var(--surface-dim); 
+	    border-radius: 28px; 
+	    box-shadow: 0 10px 40px rgba(0,0,0,0.04); 
+	    backdrop-filter: blur(10px);
+	    -webkit-backdrop-filter: blur(10px);
+	  }
+	  .card.pad { padding: 40px; }
+
+	  /* Stat / KPI style harmonization */
+	  .kpi-wrapper { margin: 32px 0; }
+	  .kpi { display: grid; gap: 24px; }
+	  .kpi .box { 
+	    background: var(--surface); 
+	    border: 1px solid var(--surface-dim); 
+	    border-radius: 28px;
+	    padding: 40px;
+	    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+	    display: flex;
+	    flex-direction: column;
+	    gap: 12px;
+	    transition: transform 0.3s ease, box-shadow 0.3s ease;
+	  }
+	  .kpi .box.kpiLink:hover { 
+	    transform: translateY(-5px); 
+	    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+	    border-color: var(--dash-primary);
+	  }
+	  .kpi .n { font-size: 2.2rem; font-weight: 850; color: var(--dash-primary); letter-spacing: -0.02em; margin-bottom: 4px; }
+	  .kpi .l { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; order: 2; }
+
+	  /* Buttons / tags */
+	  .btn { 
+	    display: inline-flex;
+	    align-items: center;
+	    justify-content: center;
+	    gap: 10px;
+	    padding: 12px 24px;
+	    border-radius: 14px; 
+	    font-weight: 700; 
+	    font-size: 0.95rem;
+	    cursor: pointer;
+	    transition: all 0.25s ease;
+	    border: 1px solid transparent;
+	  }
+	  .btn.ghost { 
+	    background: rgba(var(--dash-primary-rgb), 0.05); 
+	    border: 1px solid rgba(var(--dash-primary-rgb), 0.1); 
+	    color: var(--dash-primary);
+	  }
+	  .btn.ghost:hover {
+	    background: rgba(var(--dash-primary-rgb), 0.1);
+	    transform: translateY(-2px);
+	  }
+	  .tag { 
+	    padding: 6px 16px; 
+	    background: rgba(var(--dash-primary-rgb), 0.1); 
+	    color: var(--dash-primary); 
+	    border-radius: 20px; 
+	    font-weight: 700; 
+	    font-size: 0.75rem;
+	    text-transform: uppercase;
+	    letter-spacing: 0.05em;
+	    border: 1px solid rgba(var(--dash-primary-rgb), 0.2);
+	  }
+
+	  /* Make modals match dashboard glass */
+	  .modalOverlay {
+	    position: fixed; inset: 0;
+	    background: rgba(0,0,0,.55);
+	    backdrop-filter: blur(8px);
+	    -webkit-backdrop-filter: blur(8px);
+	    display: none;
+	    align-items: center;
+	    justify-content: center;
+	    z-index: 10000;
+	    padding: 20px;
+	  }
+	  .modalOverlay.show { display: flex; }
+	  .modal { 
+	    width: min(880px, 96vw); 
+	    background: var(--surface); 
+	    border: 1px solid var(--surface-dim); 
+	    border-radius: 28px;
+	    box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+	    overflow: hidden;
+	  }
+
+		.dash-hero {
+			position: relative;
+			padding: 40px 0 40px;
+			animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+		}
+		.hero-badge {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			padding: 6px 16px;
+			border-radius: 20px;
+			background: rgba(var(--dash-primary-rgb), 0.1);
+			border: 1px solid rgba(var(--dash-primary-rgb), 0.2);
+			font-size: 0.75rem;
+			font-weight: 700;
+			color: var(--dash-primary);
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			margin-bottom: 24px;
+		}
+		.section-label {
+			font-size: 0.85rem;
+			font-weight: 800;
+			text-transform: uppercase;
+			letter-spacing: 0.08em;
+			color: var(--text-muted);
+			display: flex;
+			align-items: center;
+			gap: 12px;
+		}
+		.section-label::after { content: ""; flex: 1; height: 1px; background: var(--surface-dim); }
+
+		@keyframes reveal {
+			from { opacity: 0; transform: translateY(20px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.page-title{ margin:0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing:-.04em; font-weight: 850; color: var(--text-strong); }
+		.page-sub{ margin: 12px 0 0; color: var(--text-muted); line-height: 1.6; font-size: 1.05rem; max-width: 650px; }
+		.top-nav{ display:flex; align-items:center; justify-content:center; margin-top: 2px; }
+		.top-nav-inner{
+			display:flex; align-items:center; gap: 10px;
+			padding: 10px 12px;
+			border-radius: 999px;
+			background: color-mix(in srgb, var(--card) 88%, transparent);
+			border: 1px solid var(--surface-dim);
+			box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+			backdrop-filter: blur(8px);
+			max-width: 100%;
+			overflow:auto;
+		}
+		.top-nav a{
+			text-decoration:none;
+			display:inline-flex;
+			align-items:center;
+			padding: 10px 14px;
+			border-radius: 999px;
+			color: var(--text-soft);
+			font-weight: 700;
+			border: 1px solid transparent;
+			transition: background .12s ease, border-color .12s ease, transform .12s ease, color .12s ease;
+			white-space:nowrap;
+		}
+		.top-nav a:hover{ background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.10); transform: translateY(-1px); color: var(--text-strong); }
+		.top-nav a.active{
+			background: linear-gradient(135deg, rgba(47,107,255,.92), rgba(74,163,255,.92));
+			color: #071225;
+			border-color: rgba(255,255,255,.14);
+			box-shadow: 0 12px 26px rgba(47,107,255,.22);
+			font-weight: 800;
+		}
+		.top-nav .sep{ height: 22px; width: 1px; background: rgba(255,255,255,.12); margin: 0 2px; border:none; }
+
+		.dash-content { padding: 40px 0 80px; display: flex; flex-direction: column; gap: 32px; }
+
+		.grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items:start; }
+		@media (max-width: 980px){ .grid{ grid-template-columns: 1fr; gap: 24px; } }
+		.grid.equalRow{ align-items: stretch; }
+		.grid.equalRow > .card{ height: 100%; display:flex; flex-direction:column; }
+		.grid.equalRow .chartBox{ flex: 1; height: auto; padding: 16px 0; }
+		.grid.equalRow .mapBox{ flex: 1; min-height: 480px; }
+
+		.kpi{ display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 24px; }
+		@media (max-width: 1400px){ .kpi{ grid-template-columns: repeat(4, minmax(0,1fr)); } }
+		@media (max-width: 1100px){ .kpi{ grid-template-columns: repeat(3, minmax(0,1fr)); gap: 20px; } }
+		@media (max-width: 760px){ .kpi{ grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; } }
+		@media (max-width: 480px){ .kpi{ grid-template-columns: 1fr; } }
+		.kpi .box{ padding: 32px; border-radius: 28px; border: 1px solid var(--surface-dim); background: var(--surface); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+		.kpi .box.kpiLink{ cursor:pointer; transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+		.kpi .box.kpiLink:hover{ transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-color: var(--dash-primary); }
+		.kpi .box.kpiLink:active{ transform: translateY(0px); }
+		.kpi .box.kpiLink:focus-within{ outline: 2px solid rgba(56,189,248,.45); outline-offset: 2px; }
+
+		/* Simple modal */
+		.modalOverlay{ position: fixed; inset: 0; background: rgba(3,6,18,.62); backdrop-filter: blur(6px); display:none; align-items:center; justify-content:center; z-index: 100; padding: 18px; overflow:hidden; overscroll-behavior: contain; }
+		.modalOverlay.show{ display:flex; }
+		.modal{ width: min(880px, 96vw); margin: 0; max-height: min(82vh, 720px); overflow:hidden; border-radius: 28px; border: 1px solid var(--surface-dim); background: var(--surface); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+		.modalHead{ display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 24px 32px; border-bottom: 1px solid var(--surface-dim); }
+		.modalTitle{ font-weight: 850; letter-spacing:-.02em; font-size: 1.5rem; color: var(--text-strong); }
+		.modalBody{ padding: 24px 32px 32px; overflow:auto; max-height: calc(min(82vh, 720px) - 80px); -webkit-overflow-scrolling: touch; }
+		.modalClose{ border: 1px solid var(--surface-dim); background: rgba(var(--dash-primary-rgb), 0.05); color: var(--dash-primary); padding: 10px 20px; border-radius: 14px; cursor:pointer; font-weight: 700; transition: all 0.2s; }
+		.modalClose:hover{ background: rgba(var(--dash-primary-rgb), 0.1); transform: translateY(-1px); }
+		.modalTools{ display:flex; gap: 16px; flex-wrap: wrap; align-items:center; margin-top: 0; margin-bottom: 24px; }
+		.modalSearch { 
+		  flex: 1; 
+		  min-width: 220px; 
+		  padding: 12px 16px; 
+		  border-radius: 14px; 
+		  border: 1px solid var(--surface-dim); 
+		  background: var(--surface-dim); 
+		  color: var(--text-strong); 
+		  outline: none; 
+		  transition: all 0.2s ease;
+		}
+		.modalSearch:focus { 
+		  border-color: var(--dash-primary);
+		  box-shadow: 0 0 0 4px rgba(var(--dash-primary-rgb), 0.1);
+		}
+
+		.modalClose { 
+		  border: 1px solid var(--surface-dim); 
+		  background: rgba(var(--dash-primary-rgb), 0.05); 
+		  color: var(--dash-primary); 
+		  padding: 10px 20px; 
+		  border-radius: 14px; 
+		  cursor: pointer; 
+		  font-weight: 700; 
+		  transition: all 0.2s;
+		}
+		.modalClose:hover { background: rgba(var(--dash-primary-rgb), 0.1); transform: translateY(-1px); }
+
+		.modalRow:hover { background: rgba(var(--dash-primary-rgb), 0.03); }
+
+		.shareFill { 
+		  height: 100%; 
+		  border-radius: 999px; 
+		  width: 0%; 
+		  background: var(--dash-primary); 
+		  box-shadow: 0 4px 12px rgba(var(--dash-primary-rgb), 0.2); 
+		}
+		.shareTrack { 
+		  height: 12px; 
+		  border-radius: 999px; 
+		  background: var(--surface-dim); 
+		  border: 1px solid var(--surface-dim); 
+		  position: relative; 
+		  overflow: hidden; 
+		}
+
+		.countryItem { 
+		  display: flex; 
+		  align-items: center; 
+		  justify-content: space-between; 
+		  gap: 10px; 
+		  padding: 14px 18px; 
+		  border: 1px solid var(--surface-dim); 
+		  background: var(--surface); 
+		  border-radius: 18px; 
+		  transition: all 0.2s ease;
+		}
+		.countryItem:hover {
+		  border-color: var(--dash-primary);
+		  transform: translateX(4px);
+		}
+		.countryItem .name { font-weight: 800; color: var(--text-strong); }
+		.countryItem .meta { color: var(--dash-primary); font-weight: 700; font-size: 0.9rem; }
+
+		.mapBox { 
+		  border-radius: 20px; 
+		  border: 1px solid var(--surface-dim); 
+		  background: var(--surface); 
+		  box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
+		}
+		.countryItem .name{ font-weight: 950; color: var(--text-strong); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+		.countryItem .meta{ color: var(--text-muted); font-weight: 900; }
+		table{ width:100%; border-collapse: collapse; }
+		th,td{ text-align:left; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.10); }
+		html[data-theme="light"] th, html[data-theme="light"] td{ border-bottom-color: rgba(8,18,38,.12); }
+		th{ font-weight: 900; color: var(--text-strong); }
+		tbody tr:hover{ background: rgba(255,255,255,.04); }
+		.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+	</style>
+</head>
+
+<body>
+	{% include '_navbar.html' %}
+	<div class="container">
+		<div class="dash-hero reveal">
+			<div class="hero-badge">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 4px;">
+					<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+					<polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+					<line x1="12" y1="22.08" x2="12" y2="12"></line>
+				</svg>
+				Advanced Analytics
+			</div>
+			
+			<div style="display:flex; gap:14px; align-items:end; justify-content:space-between; flex-wrap:wrap;">
+				<div>
+					<h1 class="page-title" id="pageTitle">
+						{{ (company_name or 'Company') }} <span style="color: var(--dash-primary)">Insights</span>
+					</h1>
+					<p class="page-sub">Explore high-level workforce metrics, geographic distribution, and department-level allocations for {{ (company_name or 'Company') }}.</p>
+				</div>
+				<div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end;">
+					<button class="btn ghost" id="exportReportBtn" type="button">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+						Download Report
+					</button>
+					<div class="tag">Live Graph</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="dash-content">
+			<div class="toastTop">
+				<div id="status" class="toast" style="display:none;"></div>
+			</div>
+
+			<div class="card pad" id="filtersCard">
+				<div style="display:flex; align-items:end; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+					<div>
+						<div class="section-label">Enterprise Filters</div>
+						<div class="muted" style="margin-top:6px;">Filter workforce intelligence by geography and structure. Visuals update in real-time.</div>
+					</div>
+					<div style="display:flex; gap:10px; flex-wrap:wrap;">
+						<button class="btn ghost" id="clearFiltersBtn" type="button">Clear</button>
+					</div>
+				</div>
+				<div class="sep"></div>
+				<div style="display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+					<div>
+						<label class="muted" for="fCountry" style="font-weight:900;">Country</label>
+						<select id="fCountry" class="field" aria-label="Filter by country">
+							<option value="">All</option>
+						</select>
+					</div>
+					<div>
+						<label class="muted" for="fCity" style="font-weight:900;">City</label>
+						<select id="fCity" class="field" aria-label="Filter by city">
+							<option value="">All</option>
+						</select>
+					</div>
+					<div>
+						<label class="muted" for="fLocation" style="font-weight:900;">Location</label>
+						<select id="fLocation" class="field" aria-label="Filter by location">
+							<option value="">All</option>
+						</select>
+					</div>
+					<div>
+						<label class="muted" for="fDepartment" style="font-weight:900;">Department</label>
+						<select id="fDepartment" class="field" aria-label="Filter by department">
+							<option value="">All</option>
+						</select>
+					</div>
+				</div>
+				<div class="muted" id="filterMeta" style="margin-top:10px; font-weight:800;"></div>
+			</div>
+
+			<div class="kpi">
+				<div class="box kpiLink" role="button" tabindex="0" data-kpi="total" aria-label="View total employees">
+					<div class="l">Workforce Total</div>
+					<div class="n" id="kTotal">–</div>
+				</div>
+				<div class="box kpiLink" role="button" tabindex="0" data-kpi="locations" aria-label="View locations">
+					<div class="l">Site Locations</div>
+					<div class="n" id="kLocations">–</div>
+				</div>
+				<div class="box kpiLink" role="button" tabindex="0" data-kpi="departments" aria-label="View departments">
+					<div class="l">Departments</div>
+					<div class="n" id="kDepartments">–</div>
+				</div>
+				<div class="box kpiLink" role="button" tabindex="0" data-kpi="countries" aria-label="View countries">
+					<div class="l">Active Countries</div>
+					<div class="n" id="kCountries">–</div>
+				</div>
+				<div class="box kpiLink" role="button" tabindex="0" data-kpi="cities" aria-label="View cities">
+					<div class="l">Unique Cities</div>
+					<div class="n" id="kCities">–</div>
+				</div>
+			</div>
+
+			<div class="modalOverlay" id="kpiModal" aria-hidden="true">
+				<div class="modal" role="dialog" aria-modal="true" aria-labelledby="kpiModalTitle">
+					<div class="modalHead">
+						<div>
+							<div class="modalTitle" id="kpiModalTitle">Details</div>
+							<div class="muted" id="kpiModalSub">–</div>
+						</div>
+						<button class="modalClose" id="kpiModalClose" type="button">Close</button>
+					</div>
+					<div class="modalBody">
+						<div class="modalTools">
+							<input class="modalSearch" id="kpiModalSearch" placeholder="Search..." />
+							<button class="btn ghost" id="kpiModalCsv" type="button">Download CSV</button>
+						</div>
+						<div class="sep"></div>
+						<div class="modalGrid" id="kpiModalGrid">
+							<div class="h">Name</div>
+							<div class="h right mono">Employees</div>
+							<div class="h right mono">Share</div>
+						</div>
+						<div id="kpiModalRows"></div>
+					</div>
+				</div>
+			</div>
+
+			<div class="grid equalRow" style="margin-top:14px;">
+				<div class="card pad" style="margin:0;">
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+						<div style="font-weight:950;">World Map (Countries)</div>
+						
+					</div>
+					<div class="muted" style="margin-top:6px; font-size:12px; line-height:1.5;">
+						Darker countries mean more employees. Hover to see employee count + share, and click a country to highlight it.
+					</div>
+					<div class="mapBox" style="margin-top:10px; height: 340px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.14); overflow:hidden;">
+						<div id="worldMap" style="width:100%; height:100%;"></div>
+					</div>
+					<div class="muted" id="countryRadialMeta" style="margin-top: 8px; font-size: 12px;"></div>
+				</div>
+				<div class="card pad" style="margin:0;">
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+						<div style="font-weight:950;">Employees by City</div>
+						<div class="muted mono" id="cityNote1">–</div>
+					</div>
+					<div class="chartBox" style="margin-top:10px;">
+						<canvas id="cityDonutChart"></canvas>
+					</div>
+				</div>
+
+				
+			</div>
+
+			<div class="grid" style="margin-top:14px;">
+				<div class="card pad" style="margin:0; grid-column: 1 / -1;">
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+						<div style="font-weight:950;">Location Distribution</div>
+						<div class="muted mono" id="locNote1">–</div>
+					</div>
+					<div class="muted" style="margin-top:6px;">Horizontal bars show <b>share %</b>. Hover for employees + percent.</div>
+					<div class="chartBox" style="margin-top:10px; height: 360px;">
+						<canvas id="locPctBarChart"></canvas>
+					</div>
+				</div>
+			</div>
+
+
+			<div class="grid" style="grid-template-columns: 1fr;">
+				<div class="card pad" style="margin:0;">
+					<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+						<div style="font-weight:950;">Employees by Department</div>
+						<div class="muted mono" id="note1">–</div>
+					</div>
+					<div class="chartBox" style="margin-top:10px;">
+						<canvas id="barChart"></canvas>
+					</div>
+				</div>
+			</div>
+
+			<div class="card pad" style="margin-top:14px;">
+				<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+					<div style="font-weight:950;">City Table</div>
+					<div style="display:flex; gap:10px; flex-wrap:wrap;">
+						<button class="btn ghost" id="exportCityCsv" type="button">Download CSV</button>
+					</div>
+				</div>
+				<div style="display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap; margin-top: 10px;">
+					<div class="muted" id="cityTableNote">Showing top cities</div>
+					<div style="display:flex; gap:10px; flex-wrap:wrap;">
+						<button class="btn ghost" id="cityShowMoreBtn" type="button">Show more</button>
+						<button class="btn ghost" id="cityShowLessBtn" type="button" style="display:none;">Show less</button>
+					</div>
+				</div>
+				<div style="overflow:auto; margin-top: 10px;">
+					<table>
+						<thead>
+							<tr>
+								<th>City</th>
+								<th class="mono">Employees</th>
+								<th class="mono">Share</th>
+							</tr>
+						</thead>
+						<tbody id="cityTbody"></tbody>
+					</table>
+				</div>
+			</div>
+
+			<div class="card pad" style="margin-top:14px;">
+				<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+					<div style="font-weight:950;">Location Table</div>
+					<div style="display:flex; gap:10px; flex-wrap:wrap;">
+						<button class="btn ghost" id="exportLocCsv" type="button">Download CSV</button>
+					</div>
+				</div>
+				<div style="display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap; margin-top: 10px;">
+					<div class="muted" id="locTableNote">Showing top locations</div>
+					<div style="display:flex; gap:10px; flex-wrap:wrap;">
+						<button class="btn ghost" id="locShowMoreBtn" type="button">Show more</button>
+						<button class="btn ghost" id="locShowLessBtn" type="button" style="display:none;">Show less</button>
+					</div>
+				</div>
+				<div style="overflow:auto; margin-top: 10px;">
+					<table>
+						<thead>
+							<tr>
+								<th>Location</th>
+								<th class="mono">Employees</th>
+								<th class="mono">Share</th>
+							</tr>
+						</thead>
+						<tbody id="locTbody"></tbody>
+					</table>
+				</div>
+			</div>
+
+			
+			<div class="card pad" style="margin-top:14px;">
+				<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+					<div style="font-weight:950;">Department Table</div>
+							<div style="display:flex; gap:10px; flex-wrap:wrap;">
+								<button class="btn ghost" id="refreshBtn" type="button">Refresh now</button>
+								<button class="btn ghost" id="exportCsv" type="button">Download CSV</button>
+							</div>
+				</div>
+						<div style="display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap; margin-top: 10px;">
+							<div class="muted" id="tableNote">Showing top departments</div>
+							<div style="display:flex; gap:10px; flex-wrap:wrap;">
+								<button class="btn ghost" id="showMoreBtn" type="button">Show more</button>
+								<button class="btn ghost" id="showLessBtn" type="button" style="display:none;">Show less</button>
+							</div>
+						</div>
+				<div style="overflow:auto; margin-top: 10px;">
+					<table>
+						<thead>
+							<tr>
+								<th>Department</th>
+								<th class="mono">Employees</th>
+								<th class="mono">Share</th>
+							</tr>
+						</thead>
+						<tbody id="deptTbody"></tbody>
+					</table>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/maps/world.js"></script>
+	<script>
+		(function(){
+			// Nav active state
+			(function syncNavActive(){
+				const links = Array.from(document.querySelectorAll('a[data-nav]'));
+				if (!links.length) return;
+				const path = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+				const isSamePath = (href) => {
+					try {
+						const u = new URL(href, window.location.origin);
+						const p = (u.pathname || '/').replace(/\/+$/, '') || '/';
+						return p === path;
+					} catch { return false; }
+				};
+				for (const a of links) { a.classList.remove('active'); a.removeAttribute('aria-current'); }
+				const active = links.find(a => isSamePath(a.getAttribute('href')));
+				if (active) { active.classList.add('active'); active.setAttribute('aria-current','page'); }
+			})();
+
+			const els = {
+				kTotal: document.getElementById('kTotal'),
+				kLocations: document.getElementById('kLocations'),
+				kDepartments: document.getElementById('kDepartments'),
+				kCountries: document.getElementById('kCountries'),
+				kCities: document.getElementById('kCities'),
+				note1: document.getElementById('note1'),
+				note2: null,
+				deptShareBars: null,
+				deptShareMeta: null,
+				locNote1: document.getElementById('locNote1'),
+				locPctBarChart: document.getElementById('locPctBarChart'),
+				cityNote1: document.getElementById('cityNote1'),
+				countryRadialMeta: document.getElementById('countryRadialMeta'),
+				worldMap: document.getElementById('worldMap'),
+				deptTbody: document.getElementById('deptTbody'),
+				locTbody: document.getElementById('locTbody'),
+				cityTbody: document.getElementById('cityTbody'),
+				exportCsv: document.getElementById('exportCsv'),
+				exportLocCsv: document.getElementById('exportLocCsv'),
+				exportCityCsv: document.getElementById('exportCityCsv'),
+						refreshBtn: document.getElementById('refreshBtn'),
+						showMoreBtn: document.getElementById('showMoreBtn'),
+						showLessBtn: document.getElementById('showLessBtn'),
+						tableNote: document.getElementById('tableNote'),
+						locShowMoreBtn: document.getElementById('locShowMoreBtn'),
+						locShowLessBtn: document.getElementById('locShowLessBtn'),
+						locTableNote: document.getElementById('locTableNote'),
+						cityShowMoreBtn: document.getElementById('cityShowMoreBtn'),
+						cityShowLessBtn: document.getElementById('cityShowLessBtn'),
+						cityTableNote: document.getElementById('cityTableNote'),
+				status: document.getElementById('status'),
+				kpiModal: document.getElementById('kpiModal'),
+				kpiModalTitle: document.getElementById('kpiModalTitle'),
+				kpiModalSub: document.getElementById('kpiModalSub'),
+				kpiModalClose: document.getElementById('kpiModalClose'),
+				kpiModalSearch: document.getElementById('kpiModalSearch'),
+				kpiModalCsv: document.getElementById('kpiModalCsv'),
+				kpiModalRows: document.getElementById('kpiModalRows'),
+				exportReportBtn: document.getElementById('exportReportBtn'),
+			};
+
+			function escapeHtml(s){
+				return String(s ?? '')
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;')
+					.replace(/'/g, '&#39;');
+			}
+
+			function canvasPngDataUrl(canvasId){
+				try {
+					const c = document.getElementById(canvasId);
+					if (!c || typeof c.toDataURL !== 'function') return '';
+					return c.toDataURL('image/png');
+				} catch { return ''; }
+			}
+
+			function worldMapSvgDataUrl(){
+				try {
+					const host = document.getElementById('worldMap');
+					if (!host) return '';
+					const svg = host.querySelector('svg');
+					if (!svg) return '';
+					const cloned = svg.cloneNode(true);
+					// Ensure the SVG has a background so export looks like the card.
+					if (!cloned.getAttribute('xmlns')) cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+					const vb = cloned.getAttribute('viewBox');
+					if (!vb) {
+						// Try to set a viewBox so it scales.
+						const w = cloned.getAttribute('width') || '1000';
+						const h = cloned.getAttribute('height') || '520';
+						cloned.setAttribute('viewBox', `0 0 ${parseFloat(w) || 1000} ${parseFloat(h) || 520}`);
+					}
+					const serialized = new XMLSerializer().serializeToString(cloned);
+					return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(serialized);
+				} catch { return ''; }
+			}
+
+			function worldMapPngDataUrl(){
+				// Best-effort: convert SVG -> PNG for PDF embedding.
+				// If it fails, return empty string.
+				return new Promise((resolve) => {
+					try {
+						const host = document.getElementById('worldMap');
+						if (!host) return resolve('');
+						const svg = host.querySelector('svg');
+						if (!svg) return resolve('');
+						// If a country is selected, crop/zoom around that country's SVG path.
+						let cropBox = null;
+						try {
+							if (typeof selectedCountryIso === 'string' && selectedCountryIso) {
+								const sel = selectedCountryIso.toUpperCase();
+								// jsVectorMap typically uses region elements with ids like "jvm-region-XX".
+								let regionEl = svg.querySelector(`#jvm-region-${sel}`);
+								if (!regionEl) regionEl = svg.querySelector(`[data-code="${sel}"]`);
+								if (!regionEl) regionEl = svg.querySelector(`[id$="-${sel}"]`);
+								if (regionEl && typeof regionEl.getBBox === 'function') {
+									const b = regionEl.getBBox();
+									if (b && isFinite(b.x) && isFinite(b.y) && isFinite(b.width) && isFinite(b.height) && b.width > 0 && b.height > 0) {
+										const pad = Math.max(12, Math.min(b.width, b.height) * 0.35);
+										cropBox = {
+											x: b.x - pad,
+											y: b.y - pad,
+											width: b.width + pad * 2,
+											height: b.height + pad * 2,
+										};
+									}
+								}
+							}
+						} catch {}
+						const cloned = svg.cloneNode(true);
+						if (!cloned.getAttribute('xmlns')) cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+						const bbox = svg.getBoundingClientRect();
+						const w = Math.max(1000, Math.round(bbox.width || 1000));
+						const h = Math.max(520, Math.round(bbox.height || 520));
+						cloned.setAttribute('width', String(w));
+						cloned.setAttribute('height', String(h));
+						if (cropBox) {
+							cloned.setAttribute('viewBox', `${cropBox.x} ${cropBox.y} ${cropBox.width} ${cropBox.height}`);
+						} else if (!cloned.getAttribute('viewBox')) {
+							cloned.setAttribute('viewBox', `0 0 ${w} ${h}`);
+						}
+						const svgText = new XMLSerializer().serializeToString(cloned);
+						const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+						const url = URL.createObjectURL(blob);
+						const img = new Image();
+						img.onload = () => {
+							try {
+								const canvas = document.createElement('canvas');
+								canvas.width = w;
+								canvas.height = h;
+								const ctx = canvas.getContext('2d');
+								if (!ctx) {
+									URL.revokeObjectURL(url);
+									return resolve('');
+								}
+								// Background: match current theme
+								const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+								ctx.fillStyle = theme === 'light' ? '#ffffff' : '#0b1020';
+								ctx.fillRect(0, 0, w, h);
+								ctx.drawImage(img, 0, 0);
+								const png = canvas.toDataURL('image/png');
+								URL.revokeObjectURL(url);
+								resolve(png);
+							} catch {
+								URL.revokeObjectURL(url);
+								resolve('');
+							}
+						};
+						img.onerror = () => {
+							URL.revokeObjectURL(url);
+							resolve('');
+						};
+						img.src = url;
+					} catch {
+						resolve('');
+					}
+				});
+			}
+
+			function currentFiltersSummary(){
+				const parts = [];
+				if (filterState && filterState.country) parts.push(`Country: ${filterState.country}`);
+				if (filterState && filterState.city) parts.push(`City: ${filterState.city}`);
+				if (filterState && filterState.officeLocation) parts.push(`Location: ${filterState.officeLocation}`);
+				if (filterState && filterState.department) parts.push(`Department: ${filterState.department}`);
+				return parts.length ? parts.join(' • ') : 'No filters applied';
+			}
+
+			async function downloadInsightsReportPdf(){
+				const company = (lastPayload && lastPayload.company_name) ? lastPayload.company_name : (document.getElementById('pageTitle')?.textContent || 'Company');
+				const generatedAt = new Date();
+				const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+				const kpi = {
+					total: els.kTotal ? els.kTotal.textContent : '',
+					locations: els.kLocations ? els.kLocations.textContent : '',
+					departments: els.kDepartments ? els.kDepartments.textContent : '',
+					countries: els.kCountries ? els.kCountries.textContent : '',
+					cities: els.kCities ? els.kCities.textContent : '',
+				};
+
+				// Charts
+				const charts = {
+					dept: canvasPngDataUrl('barChart'),
+					loc: canvasPngDataUrl('locPctBarChart'),
+					city: canvasPngDataUrl('cityDonutChart'),
+					map: await worldMapPngDataUrl(),
+				};
+
+				const body = {
+					company,
+					theme,
+					filters: currentFiltersSummary(),
+					generatedAt: generatedAt.toLocaleString(),
+					kpi,
+					charts,
+				};
+
+				const resp = await fetch('/insights/report.pdf', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(body),
+				});
+				if (!resp.ok) {
+					let msg = `HTTP ${resp.status}`;
+					try { const j = await resp.json(); msg = j?.error || msg; } catch {}
+					throw new Error(msg);
+				}
+				const blob = await resp.blob();
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				const safeName = String(company || 'company').replace(/[^a-z0-9\-\_]+/gi,'_');
+				a.download = `${safeName}_insights_report.pdf`;
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				setTimeout(() => URL.revokeObjectURL(url), 1500);
+			}
+
+			function downloadInsightsReport(){
+				const company = (lastPayload && lastPayload.company_name) ? lastPayload.company_name : (document.getElementById('pageTitle')?.textContent || 'Company');
+				const generatedAt = new Date();
+				const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+
+				const kpi = {
+					total: els.kTotal ? els.kTotal.textContent : '',
+					locations: els.kLocations ? els.kLocations.textContent : '',
+					departments: els.kDepartments ? els.kDepartments.textContent : '',
+					countries: els.kCountries ? els.kCountries.textContent : '',
+					cities: els.kCities ? els.kCities.textContent : '',
+				};
+
+				const imgs = {
+					dept: canvasPngDataUrl('barChart'),
+					loc: canvasPngDataUrl('locPctBarChart'),
+					city: canvasPngDataUrl('cityDonutChart'),
+					map: worldMapSvgDataUrl(),
+				};
+
+				const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>${escapeHtml(company)} - Insights Report</title>
+  <style>
+    :root{ --bg:#0b1020; --card: rgba(255,255,255,.06); --stroke: rgba(255,255,255,.12); --text: rgba(234,240,255,.92); --muted: rgba(234,240,255,.68); }
+    body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: var(--bg); color: var(--text); }
+    .wrap{ width:min(1100px, calc(100% - 48px)); margin: 28px auto 60px; }
+    .h1{ font-size: 32px; font-weight: 950; letter-spacing: -.02em; margin:0; }
+    .sub{ color: var(--muted); margin-top:8px; line-height:1.6; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .card{ background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.045)); border:1px solid var(--stroke); border-radius: 18px; padding: 16px; }
+    .kpi{ display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap:10px; margin-top:14px; }
+    .kpi .box{ padding: 12px; border-radius: 14px; border:1px solid var(--stroke); background: rgba(0,0,0,.18); }
+    .kpi .n{ font-weight: 950; font-size: 20px; }
+    .kpi .l{ margin-top: 4px; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+    @media (max-width: 980px){ .kpi{ grid-template-columns: repeat(2, minmax(0,1fr)); } .grid{ grid-template-columns: 1fr; } }
+    .title{ font-weight: 950; margin-bottom: 8px; }
+    img{ max-width: 100%; height: auto; display:block; border-radius: 14px; border:1px solid var(--stroke); background: rgba(0,0,0,.16); }
+    .meta{ color: var(--muted); font-size: 12px; font-weight: 800; }
+    .sep{ height:1px; background: rgba(255,255,255,.10); margin: 14px 0; }
+    .small{ font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="h1">${escapeHtml(company)} Insights Report</div>
+      <div class="sub">Generated: ${escapeHtml(generatedAt.toLocaleString())} • Theme: ${escapeHtml(theme)}<br/>
+        <span class="meta">Filters: ${escapeHtml(currentFiltersSummary())}</span>
+      </div>
+    </div>
+
+    <div class="kpi">
+      <div class="box"><div class="n">${escapeHtml(kpi.total)}</div><div class="l">Total employees</div></div>
+      <div class="box"><div class="n">${escapeHtml(kpi.locations)}</div><div class="l">Locations</div></div>
+      <div class="box"><div class="n">${escapeHtml(kpi.departments)}</div><div class="l">Departments</div></div>
+      <div class="box"><div class="n">${escapeHtml(kpi.countries)}</div><div class="l">Countries</div></div>
+      <div class="box"><div class="n">${escapeHtml(kpi.cities)}</div><div class="l">Cities</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="title">World Map (Countries)</div>
+        <div class="meta">Darker countries mean more employees (based on directory data).</div>
+        ${imgs.map ? `<img alt="World map" src="${imgs.map}"/>` : `<div class="meta small">Map snapshot not available in this browser.</div>`}
+      </div>
+      <div class="card">
+        <div class="title">Employees by City</div>
+        ${imgs.city ? `<img alt="Employees by city" src="${imgs.city}"/>` : `<div class="meta small">Chart snapshot not available.</div>`}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="title">Location Distribution</div>
+      ${imgs.loc ? `<img alt="Location distribution" src="${imgs.loc}"/>` : `<div class="meta small">Chart snapshot not available.</div>`}
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="title">Employees by Department</div>
+      ${imgs.dept ? `<img alt="Employees by department" src="${imgs.dept}"/>` : `<div class="meta small">Chart snapshot not available.</div>`}
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="title">Tables</div>
+      <div class="meta">For full raw rows, use the CSV download buttons on the Insights page.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+				const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+				const a = document.createElement('a');
+				a.href = URL.createObjectURL(blob);
+				const safeName = String(company || 'company').replace(/[^a-z0-9\-\_]+/gi,'_');
+				a.download = `${safeName}_insights_report.html`;
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+			}
+
+			// Report export
+			if (els.exportReportBtn) {
+				els.exportReportBtn.addEventListener('click', () => {
+					const btn = els.exportReportBtn;
+					const old = btn.textContent;
+					btn.textContent = 'Preparing PDF...';
+					btn.disabled = true;
+					downloadInsightsReportPdf()
+						.catch((e) => {
+							console.error('PDF export failed; falling back to HTML export.', e);
+							// Fallback to HTML so user still gets something.
+							downloadInsightsReport();
+						})
+						.finally(() => {
+							btn.textContent = old;
+							btn.disabled = false;
+						});
+				});
+			}
+
+			function showStatus(msg, kind){
+				els.status.style.display = 'block';
+				els.status.className = 'toast ' + (kind || '');
+				els.status.textContent = msg;
+			}
+
+			function clearStatus(){
+				els.status.style.display = 'none';
+				els.status.textContent = '';
+				els.status.className = 'toast';
+			}
+
+			function fmtPct(x){
+				return (Math.round(x * 10) / 10).toFixed(1) + '%';
+			}
+
+			function getThemeChartColors(){
+				const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+				const isLight = theme === 'light';
+				return {
+					tick: isLight ? 'rgba(8,18,38,.78)' : 'rgba(234,240,255,.75)',
+					tickStrong: isLight ? 'rgba(8,18,38,.88)' : 'rgba(234,240,255,.85)',
+					grid: isLight ? 'rgba(8,18,38,.10)' : 'rgba(255,255,255,.06)',
+					legend: isLight ? 'rgba(8,18,38,.78)' : 'rgba(234,240,255,.75)',
+				};
+			}
+
+			function renderShareBars(container, metaEl, rows, getName, total, topN){
+				if (!container) return;
+				container.innerHTML = '';
+				const list = Array.isArray(rows) ? rows.slice() : [];
+				const cleaned = list.filter(r => (getName(r) || '').trim() && getName(r) !== '(Unassigned)');
+				const top = cleaned.slice(0, topN);
+				const others = cleaned.slice(topN);
+				const otherSum = others.reduce((a, r) => a + (r.count || 0), 0);
+
+				const gradients = [
+					'linear-gradient(90deg, rgba(56,189,248,.95), rgba(99,102,241,.95))',
+					'linear-gradient(90deg, rgba(34,211,238,.95), rgba(139,92,246,.95))',
+					'linear-gradient(90deg, rgba(45,212,191,.95), rgba(59,130,246,.95))',
+					'linear-gradient(90deg, rgba(129,140,248,.95), rgba(6,182,212,.95))',
+					'linear-gradient(90deg, rgba(139,92,246,.95), rgba(20,184,166,.95))',
+					'linear-gradient(90deg, rgba(59,130,246,.95), rgba(34,211,238,.95))',
+				];
+
+				for (let i = 0; i < top.length; i++) {
+					const r = top[i];
+					const name = getName(r);
+					const value = Number(r.count || 0);
+					const pct = total ? (value * 100) / total : 0;
+					// Cap the visual scale to 10% so small shares are easier to compare.
+					// (We still show the real percentage as text.)
+					const clamped = Math.max(0, Math.min(10, pct));
+
+					const row = document.createElement('div');
+					row.className = 'shareRow';
+
+					const label = document.createElement('div');
+					label.className = 'shareLabel';
+					label.title = `${name} — ${value} (${pct.toFixed(1)}%)`;
+					label.textContent = name;
+
+					const track = document.createElement('div');
+					track.className = 'shareTrack';
+					const fill = document.createElement('div');
+					fill.className = 'shareFill';
+					fill.style.width = `${(clamped * 10).toFixed(1)}%`;
+					fill.style.background = gradients[i % gradients.length];
+					track.appendChild(fill);
+
+					const pctEl = document.createElement('div');
+					pctEl.className = 'sharePct';
+					pctEl.textContent = fmtPct(pct);
+
+					row.appendChild(label);
+					row.appendChild(track);
+					row.appendChild(pctEl);
+					container.appendChild(row);
+
+					const countEl = document.createElement('div');
+					countEl.className = 'shareCount';
+					countEl.textContent = `${value} employees`;
+					container.appendChild(countEl);
+				}
+
+				if (metaEl) {
+					metaEl.textContent = otherSum
+						? `Showing top ${top.length}. Remaining grouped outside view: ${otherSum} employees (${total ? ((otherSum * 100) / total).toFixed(1) : '0.0'}%).`
+						: `Showing top ${top.length}.`;
+				}
+			}
+
+			function setCompanyTitle(name){
+				const nm = (name || '').trim();
+				if (!nm) return;
+				const title = `${nm} Insights`;
+				document.title = title;
+				const h1 = document.getElementById('pageTitle');
+				if (h1) h1.textContent = title;
+			}
+
+			let barChart = null;
+			let donutChart = null;
+			let locPctBarChart = null;
+			let cityDonutChart = null;
+			let worldMap = null;
+			let lastCountryTotalsByIso = null;
+			let lastCountryTotalEmployees = 0;
+			let lastCountryNameByIso = null;
+			let lastMapNameIndex = null;
+			let selectedCountryIso = '';
+			let lastRows = [];
+			let lastLocRows = [];
+			let lastCityRows = [];
+			let lastCountryRows = [];
+			let lastUsers = [];
+			let lastPayload = null;
+			let tableLimit = 15;
+			let locTableLimit = 15;
+			let cityTableLimit = 15;
+			let modalState = { kind: null, rows: [], nameKey: 'name', total: 0 };
+			let filteredUsers = [];
+			let filterState = { department: '', officeLocation: '', city: '', country: '' };
+			const filterEls = {
+				department: document.getElementById('fDepartment'),
+				officeLocation: document.getElementById('fLocation'),
+				city: document.getElementById('fCity'),
+				country: document.getElementById('fCountry'),
+				clear: document.getElementById('clearFiltersBtn'),
+				meta: document.getElementById('filterMeta'),
+			};
+
+			function safeVal(x){ return String(x || '').trim(); }
+			function keyOf(x){ return safeVal(x).toLowerCase(); }
+			function isUnassigned(x){
+				const s = safeVal(x);
+				return !s || s === '(Unassigned)';
+			}
+
+			function uniqueSorted(values){
+				const seen = new Map();
+				for (const v of values) {
+					const s = safeVal(v);
+					if (!s || s === '(Unassigned)') continue;
+					seen.set(keyOf(s), s);
+				}
+				return Array.from(seen.values()).sort((a,b) => a.localeCompare(b));
+			}
+
+			function fillSelect(sel, options, placeholder){
+				if (!sel) return;
+				const prev = sel.value;
+				sel.innerHTML = '';
+				const opt0 = document.createElement('option');
+				opt0.value = '';
+				opt0.textContent = placeholder || 'All';
+				sel.appendChild(opt0);
+				for (const o of options) {
+					const opt = document.createElement('option');
+					opt.value = o;
+					opt.textContent = o;
+					sel.appendChild(opt);
+				}
+				// Keep selection if still available
+				if (prev) {
+					const found = Array.from(sel.options).some(op => op.value === prev);
+					sel.value = found ? prev : '';
+				}
+			}
+
+			function aggregateCounts(users, field){
+				const m = new Map();
+				for (const u of (users || [])) {
+					const raw = safeVal(u[field]);
+					const name = raw ? raw : '(Unassigned)';
+					m.set(name, (m.get(name) || 0) + 1);
+				}
+				const out = Array.from(m.entries()).map(([name, count]) => (
+					field === 'department' ? ({ department: name, count }) :
+					field === 'officeLocation' ? ({ location: name, count }) :
+					field === 'city' ? ({ city: name, count }) :
+					({ country: name, count })
+				));
+				out.sort((a,b) => (b.count - a.count) || String(Object.values(a)[0]).localeCompare(String(Object.values(b)[0])));
+				// Hide unassigned in breakdown visuals, just like server.
+				return out.filter(r => {
+					const name = r.department || r.location || r.city || r.country;
+					return name !== '(Unassigned)';
+				});
+			}
+
+			function applyFiltersAndRender(){
+				const all = Array.isArray(lastUsers) ? lastUsers : [];
+				const dep = safeVal(filterState.department);
+				const loc = safeVal(filterState.officeLocation);
+				const city = safeVal(filterState.city);
+				const ctry = safeVal(filterState.country);
+
+				filteredUsers = all.filter(u => {
+					if (dep && safeVal(u.department) !== dep) return false;
+					if (loc && safeVal(u.officeLocation) !== loc) return false;
+					if (city && safeVal(u.city) !== city) return false;
+					if (ctry && safeVal(u.country) !== ctry) return false;
+					return true;
+				});
+
+				const deptRows = aggregateCounts(filteredUsers, 'department');
+				const locRows = aggregateCounts(filteredUsers, 'officeLocation');
+				const cityRows = aggregateCounts(filteredUsers, 'city');
+				const countryRows = aggregateCounts(filteredUsers, 'country');
+
+				// Render everything with the filtered aggregates.
+				const meta = Object.assign({}, (lastPayload || {}), {
+					// total employees should be based on filtered users
+					total_employees: filteredUsers.length,
+					department_count: deptRows.length,
+				});
+				render(deptRows, locRows, cityRows, countryRows, meta);
+
+				if (filterEls.meta) {
+					const parts = [];
+					if (dep) parts.push(`Department: ${dep}`);
+					if (loc) parts.push(`Location: ${loc}`);
+					if (city) parts.push(`City: ${city}`);
+					if (ctry) parts.push(`Country: ${ctry}`);
+					filterEls.meta.textContent = `${filteredUsers.length} employees` + (parts.length ? ` • ${parts.join(' • ')}` : ' • No filters applied');
+				}
+			}
+
+			function _filterUsersExcept(keyToIgnore){
+				const all = Array.isArray(lastUsers) ? lastUsers : [];
+				const dep = safeVal(filterState.department);
+				const loc = safeVal(filterState.officeLocation);
+				const city = safeVal(filterState.city);
+				const ctry = safeVal(filterState.country);
+				return all.filter(u => {
+					if (keyToIgnore !== 'department' && dep && safeVal(u.department) !== dep) return false;
+					if (keyToIgnore !== 'officeLocation' && loc && safeVal(u.officeLocation) !== loc) return false;
+					if (keyToIgnore !== 'city' && city && safeVal(u.city) !== city) return false;
+					if (keyToIgnore !== 'country' && ctry && safeVal(u.country) !== ctry) return false;
+					return true;
+				});
+			}
+
+			function refreshCascadingFilterOptions(changedKey){
+				// For each dropdown, compute allowed options based on *other* filters,
+				// so selecting Country shrinks City/Location/Department options.
+				const usersForDepartment = _filterUsersExcept('department');
+				const usersForLocation = _filterUsersExcept('officeLocation');
+				const usersForCity = _filterUsersExcept('city');
+				const usersForCountry = _filterUsersExcept('country');
+
+				fillSelect(filterEls.department, uniqueSorted(usersForDepartment.map(x => x.department)), 'All');
+				fillSelect(filterEls.officeLocation, uniqueSorted(usersForLocation.map(x => x.officeLocation)), 'All');
+				fillSelect(filterEls.city, uniqueSorted(usersForCity.map(x => x.city)), 'All');
+				fillSelect(filterEls.country, uniqueSorted(usersForCountry.map(x => x.country)), 'All');
+
+				// If any selection became invalid due to option shrink, clear it.
+				const ensureValid = (key, sel) => {
+					if (!sel) return;
+					const v = safeVal(sel.value);
+					if (!v) return;
+					const ok = Array.from(sel.options).some(op => op.value === v);
+					if (!ok) {
+						sel.value = '';
+						filterState[key] = '';
+					}
+				};
+				ensureValid('department', filterEls.department);
+				ensureValid('officeLocation', filterEls.officeLocation);
+				ensureValid('city', filterEls.city);
+				ensureValid('country', filterEls.country);
+			}
+
+			function updateFilterOptionsFromUsers(users){
+				const u = Array.isArray(users) ? users : [];
+				fillSelect(filterEls.department, uniqueSorted(u.map(x => x.department)), 'All');
+				fillSelect(filterEls.officeLocation, uniqueSorted(u.map(x => x.officeLocation)), 'All');
+				fillSelect(filterEls.city, uniqueSorted(u.map(x => x.city)), 'All');
+				fillSelect(filterEls.country, uniqueSorted(u.map(x => x.country)), 'All');
+			}
+
+			function syncFilterStateFromUI(){
+				filterState.department = safeVal(filterEls.department && filterEls.department.value);
+				filterState.officeLocation = safeVal(filterEls.officeLocation && filterEls.officeLocation.value);
+				filterState.city = safeVal(filterEls.city && filterEls.city.value);
+				filterState.country = safeVal(filterEls.country && filterEls.country.value);
+			}
+
+			function wireFilters(){
+				const onChange = (changedKey) => {
+					syncFilterStateFromUI();
+					refreshCascadingFilterOptions(changedKey);
+					applyFiltersAndRender();
+				};
+				if (filterEls.department) filterEls.department.addEventListener('change', onChange);
+				if (filterEls.officeLocation) filterEls.officeLocation.addEventListener('change', onChange);
+				if (filterEls.city) filterEls.city.addEventListener('change', onChange);
+				if (filterEls.country) filterEls.country.addEventListener('change', onChange);
+				// override handlers to pass key
+				if (filterEls.department) {
+					filterEls.department.onchange = () => onChange('department');
+				}
+				if (filterEls.officeLocation) {
+					filterEls.officeLocation.onchange = () => onChange('officeLocation');
+				}
+				if (filterEls.city) {
+					filterEls.city.onchange = () => onChange('city');
+				}
+				if (filterEls.country) {
+					filterEls.country.onchange = () => onChange('country');
+				}
+				if (filterEls.clear) filterEls.clear.addEventListener('click', () => {
+					filterState = { department: '', officeLocation: '', city: '', country: '' };
+					if (filterEls.department) filterEls.department.value = '';
+					if (filterEls.officeLocation) filterEls.officeLocation.value = '';
+					if (filterEls.city) filterEls.city.value = '';
+					if (filterEls.country) filterEls.country.value = '';
+					refreshCascadingFilterOptions('clear');
+					applyFiltersAndRender();
+				});
+			}
+			wireFilters();
+
+			function normalizeKey(x){
+				return String(x || '').trim();
+			}
+
+			function normalizeCountryName(x){
+				const s = String(x || '').trim();
+				if (!s) return '';
+				const upper = s.toUpperCase();
+				// If a 2-3 letter code is provided, map common codes to names.
+				if (/^[A-Z]{2,3}$/.test(upper)) {
+					const map = {
+						IN: 'India',
+						US: 'United States',
+						USA: 'United States',
+						UK: 'United Kingdom',
+						GB: 'United Kingdom',
+						AE: 'United Arab Emirates',
+						DE: 'Germany',
+						FR: 'France',
+						NL: 'Netherlands',
+						SG: 'Singapore',
+						JP: 'Japan',
+						CN: 'China',
+						CA: 'Canada',
+						AU: 'Australia',
+						AR: 'Argentina',
+						BE: 'Belgium',
+						BR: 'Brazil',
+						CR: 'Costa Rica',
+						ES: 'Spain',
+						IE: 'Ireland',
+						JO: 'Jordan',
+						MX: 'Mexico',
+						MY: 'Malaysia',
+						PL: 'Poland',
+						TW: 'Taiwan',
+						TWN: 'Taiwan',
+					};
+					return map[upper] || s;
+				}
+				return s;
+			}
+
+			function toIso2FromCountryName(countryName){
+				const n = normalizeCountryName(countryName);
+				if (!n) return '';
+				const key = String(n)
+					.normalize('NFD')
+					.replace(/[\u0300-\u036f]/g, '') // strip accents
+					.toLowerCase()
+					.replace(/&/g, 'and')
+					.replace(/[^a-z\s]/g, ' ') // remove punctuation
+					.replace(/\s+/g, ' ')
+					.trim();
+				if (!key) return '';
+				// Common name/alias -> ISO2 mapping for map highlighting (extendable)
+				const map = {
+					// Americas
+					'united states': 'US',
+					'united states of america': 'US',
+					'usa': 'US',
+					'us': 'US',
+					'canada': 'CA',
+					'mexico': 'MX',
+					'brazil': 'BR',
+					'argentina': 'AR',
+					'chile': 'CL',
+					'colombia': 'CO',
+					'peru': 'PE',
+					'venezuela': 'VE',
+					'ecuador': 'EC',
+					'bolivia': 'BO',
+					'uruguay': 'UY',
+					'paraguay': 'PY',
+					'panama': 'PA',
+					'costa rica': 'CR',
+					'guatemala': 'GT',
+					'honduras': 'HN',
+					'el salvador': 'SV',
+					'nicaragua': 'NI',
+					'dominican republic': 'DO',
+					'puerto rico': 'PR',
+					'jamaica': 'JM',
+					// Europe
+					'united kingdom': 'GB',
+					'great britain': 'GB',
+					'britain': 'GB',
+					'england': 'GB',
+					'scotland': 'GB',
+					'wales': 'GB',
+					'northern ireland': 'GB',
+					'ireland': 'IE',
+					'republic of ireland': 'IE',
+					'france': 'FR',
+					'germany': 'DE',
+					'netherlands': 'NL',
+					'holland': 'NL',
+					'belgium': 'BE',
+					'luxembourg': 'LU',
+					'switzerland': 'CH',
+					'austria': 'AT',
+					'italy': 'IT',
+					'spain': 'ES',
+					'portugal': 'PT',
+					'poland': 'PL',
+					'czech republic': 'CZ',
+					'czechia': 'CZ',
+					'slovakia': 'SK',
+					'hungary': 'HU',
+					'romania': 'RO',
+					'bulgaria': 'BG',
+					'croatia': 'HR',
+					'slovenia': 'SI',
+					'serbia': 'RS',
+					'bosnia and herzegovina': 'BA',
+					'north macedonia': 'MK',
+					'albania': 'AL',
+					'greece': 'GR',
+					'ukraine': 'UA',
+					'russia': 'RU',
+					'russian federation': 'RU',
+					'finland': 'FI',
+					'sweden': 'SE',
+					'norway': 'NO',
+					'denmark': 'DK',
+					'island': 'IS',
+					'estonia': 'EE',
+					'latvia': 'LV',
+					'lithuania': 'LT',
+					// Middle East & Africa
+					'united arab emirates': 'AE',
+					'uae': 'AE',
+					'saudi arabia': 'SA',
+					'qatar': 'QA',
+					'kuwait': 'KW',
+					'oman': 'OM',
+					'bahrain': 'BH',
+					'israel': 'IL',
+					'turkey': 'TR',
+					'iran': 'IR',
+					'iraq': 'IQ',
+					'egypt': 'EG',
+					'south africa': 'ZA',
+					'nigeria': 'NG',
+					'kenya': 'KE',
+					'ghana': 'GH',
+					'morocco': 'MA',
+					'tunisia': 'TN',
+					'algeria': 'DZ',
+					'ethiopia': 'ET',
+					// Asia-Pacific
+					'india': 'IN',
+					'pakistan': 'PK',
+					'bangladesh': 'BD',
+					'sri lanka': 'LK',
+					'nepal': 'NP',
+					'china': 'CN',
+					'people s republic of china': 'CN',
+					'hong kong': 'HK',
+					'taiwan': 'TW',
+					'japan': 'JP',
+					'south korea': 'KR',
+					'korea republic of': 'KR',
+					'north korea': 'KP',
+					'singapore': 'SG',
+					'malaysia': 'MY',
+					'indonesia': 'ID',
+					'philippines': 'PH',
+					'viet nam': 'VN',
+					'vietnam': 'VN',
+					'thailand': 'TH',
+					'cambodia': 'KH',
+					'laos': 'LA',
+					'myanmar': 'MM',
+					'brunei': 'BN',
+					'australia': 'AU',
+					'new zealand': 'NZ',
+				};
+				return map[key] || '';
+			}
+
+			function canonCountryKey(countryName){
+				const n = normalizeCountryName(countryName);
+				if (!n) return '';
+				return String(n)
+					.normalize('NFD')
+					.replace(/[\u0300-\u036f]/g, '')
+					.toLowerCase()
+					.replace(/&/g, 'and')
+					.replace(/[^a-z\s]/g, ' ')
+					.replace(/\s+/g, ' ')
+					.trim();
+			}
+
+			function buildMapNameIndex(){
+				// Build once: canonical region name -> ISO2 code, based on the map data itself.
+				// Works because jsVectorMap provides region names for each ISO code.
+				try {
+					const regions = (window && window.jsVectorMap && window.jsVectorMap.maps && window.jsVectorMap.maps.world && window.jsVectorMap.maps.world.regions) || null;
+					if (!regions) return null;
+					const idx = Object.create(null);
+					for (const code of Object.keys(regions)) {
+						const nm = regions[code] && regions[code].name ? regions[code].name : '';
+						const ck = canonCountryKey(nm);
+						if (ck) idx[ck] = code;
+					}
+					return idx;
+				} catch { return null; }
+			}
+
+			function buildCountryIsoTotals(countryRows){
+				const totals = Object.create(null);
+				const nameByIso = Object.create(null);
+				const rawCountByCanon = Object.create(null);
+				const cleaned = (countryRows || []).filter(r => (r.country || '').trim() && r.country !== '(Unassigned)');
+				const mapNameIndex = buildMapNameIndex();
+				let total = 0;
+				for (const r of cleaned) {
+					const name = normalizeCountryName(r.country);
+					const canon = canonCountryKey(name);
+					rawCountByCanon[canon] = (rawCountByCanon[canon] || 0) + Number(r.count || 0);
+					let iso = '';
+					if (canon && mapNameIndex && mapNameIndex[canon]) iso = mapNameIndex[canon];
+					if (!iso) iso = toIso2FromCountryName(name);
+					const count = Number(r.count || 0);
+					total += count;
+					if (!iso) continue; // country not mappable by name list (won't highlight on map)
+					totals[iso] = (totals[iso] || 0) + count;
+					nameByIso[iso] = name;
+				}
+				return { totals, total, nameByIso, rawCountByCanon, mapNameIndex };
+			}
+
+			function renderWorldMap(countryRows){
+				if (!els.worldMap) return;
+				if (typeof jsVectorMap === 'undefined') return;
+
+				const built = buildCountryIsoTotals(countryRows);
+				lastCountryTotalsByIso = built.totals;
+				lastCountryTotalEmployees = built.total;
+				lastCountryNameByIso = built.nameByIso;
+				lastMapNameIndex = built.mapNameIndex || null;
+
+				const mappedCount = Object.keys(built.totals).length;
+				const rawCountries = (countryRows || []).filter(r => (r.country || '').trim() && r.country !== '(Unassigned)');
+				const canonCountries = new Set(rawCountries.map(r => canonCountryKey(r.country)).filter(Boolean));
+				const totalCountries = canonCountries.size;
+				const unmapped = Math.max(0, totalCountries - mappedCount);
+				
+
+				// Recreate map to refresh values cleanly.
+				try { if (worldMap) worldMap.destroy(); } catch {}
+				els.worldMap.innerHTML = '';
+				worldMap = new jsVectorMap({
+					selector: '#worldMap',
+					map: 'world',
+					zoomButtons: true,
+					backgroundColor: 'transparent',
+					// regionStyle defined below (includes selected styling)
+					selectedRegions: selectedCountryIso ? [selectedCountryIso] : [],
+					regionStyle: {
+						initial: {
+							fill: 'rgba(255,255,255,.07)',
+							stroke: 'rgba(255,255,255,.10)',
+							strokeWidth: 0.6,
+						},
+						hover: {
+							fill: 'rgba(56,189,248,.28)',
+						},
+						selected: {
+							fill: 'rgba(255, 215, 102, .92)',
+							stroke: 'rgba(255, 215, 102, 1)',
+							strokeWidth: 1.1,
+						}
+					},
+					series: {
+						regions: [{
+							values: built.totals,
+							scale: ['rgba(56,189,248,.18)', 'rgba(139,92,246,.85)'],
+							normalizeFunction: 'polynomial',
+						}]
+					},
+					onRegionClick: function (event, code) {
+						// Clicking a region should select/highlight it and sync the country summary dropdown.
+						selectedCountryIso = String(code || '').toUpperCase();
+						try { worldMap.setSelectedRegions([selectedCountryIso]); } catch {}
+						// Country-wise Summary section removed; map-only selection remains.
+					},
+					onRegionTooltipShow: function (event, tooltip, code) {
+						const c = (built.totals && built.totals[code]) ? Number(built.totals[code]) : 0;
+						const rawName = (built.nameByIso && built.nameByIso[code]) ? built.nameByIso[code] : (tooltip && typeof tooltip.text === 'function' ? tooltip.text() : code);
+						const name = normalizeCountryName(rawName) || String(rawName || code);
+						const pct = built.total ? (c * 100) / built.total : 0;
+						tooltip.html(`${name}<br/><span style="opacity:.88; font-weight:900;">${c} employees</span> <span style="opacity:.75;">(${pct.toFixed(1)}%)</span>`);
+					}
+				});
+			}
+
+			function iso2ForCountryName(countryName){
+				const name = normalizeCountryName(countryName);
+				if (!name) return '';
+				const canon = canonCountryKey(name);
+				if (canon && lastMapNameIndex && lastMapNameIndex[canon]) return lastMapNameIndex[canon];
+				return toIso2FromCountryName(name) || '';
+			}
+
+			function highlightSelectedCountry(countryName){
+				selectedCountryIso = iso2ForCountryName(countryName);
+				if (!worldMap) return;
+				try { worldMap.setSelectedRegions(selectedCountryIso ? [selectedCountryIso] : []); } catch {}
+			}
+
+			// Country-wise Summary section removed.
+
+					function renderTable(){
+						const total = lastRows.reduce((a, r) => a + (r.count || 0), 0);
+						const shown = lastRows.slice(0, tableLimit);
+
+						els.deptTbody.innerHTML = '';
+						for (const r of shown) {
+							const tr = document.createElement('tr');
+							const td1 = document.createElement('td');
+							td1.textContent = r.department;
+							const td2 = document.createElement('td');
+							td2.className = 'mono';
+							td2.textContent = String(r.count);
+							const td3 = document.createElement('td');
+							td3.className = 'mono';
+							td3.textContent = total ? fmtPct((r.count * 100) / total) : '0.0%';
+							tr.appendChild(td1);
+							tr.appendChild(td2);
+							tr.appendChild(td3);
+							els.deptTbody.appendChild(tr);
+						}
+
+						const remaining = Math.max(0, lastRows.length - shown.length);
+						els.tableNote.textContent = remaining
+							? `Showing ${shown.length} of ${lastRows.length} departments (hide ${(remaining)} until expanded)`
+							: `Showing all ${lastRows.length} departments`;
+
+						els.showMoreBtn.style.display = (lastRows.length > tableLimit) ? '' : 'none';
+						els.showLessBtn.style.display = (tableLimit > 15 && lastRows.length > 15) ? '' : 'none';
+					}
+
+					function renderLocTable(){
+						const total = lastLocRows.reduce((a, r) => a + (r.count || 0), 0);
+						const shown = lastLocRows.slice(0, locTableLimit);
+
+						els.locTbody.innerHTML = '';
+						for (const r of shown) {
+							const tr = document.createElement('tr');
+							const td1 = document.createElement('td');
+							td1.textContent = r.location;
+							const td2 = document.createElement('td');
+							td2.className = 'mono';
+							td2.textContent = String(r.count);
+							const td3 = document.createElement('td');
+							td3.className = 'mono';
+							td3.textContent = total ? fmtPct((r.count * 100) / total) : '0.0%';
+							tr.appendChild(td1);
+							tr.appendChild(td2);
+							tr.appendChild(td3);
+							els.locTbody.appendChild(tr);
+						}
+
+						const remaining = Math.max(0, lastLocRows.length - shown.length);
+						els.locTableNote.textContent = remaining
+							? `Showing ${shown.length} of ${lastLocRows.length} locations (hide ${(remaining)} until expanded)`
+							: `Showing all ${lastLocRows.length} locations`;
+
+						els.locShowMoreBtn.style.display = (lastLocRows.length > locTableLimit) ? '' : 'none';
+						els.locShowLessBtn.style.display = (locTableLimit > 15 && lastLocRows.length > 15) ? '' : 'none';
+					}
+
+					function renderCityTable(){
+						const total = lastCityRows.reduce((a, r) => a + (r.count || 0), 0);
+						const shown = lastCityRows.slice(0, cityTableLimit);
+
+						els.cityTbody.innerHTML = '';
+						for (const r of shown) {
+							const tr = document.createElement('tr');
+							const td1 = document.createElement('td');
+							td1.textContent = r.city;
+							const td2 = document.createElement('td');
+							td2.className = 'mono';
+							td2.textContent = String(r.count);
+							const td3 = document.createElement('td');
+							td3.className = 'mono';
+							td3.textContent = total ? fmtPct((r.count * 100) / total) : '0.0%';
+							tr.appendChild(td1);
+							tr.appendChild(td2);
+							tr.appendChild(td3);
+							els.cityTbody.appendChild(tr);
+						}
+
+						const remaining = Math.max(0, lastCityRows.length - shown.length);
+						els.cityTableNote.textContent = remaining
+							? `Showing ${shown.length} of ${lastCityRows.length} cities (hide ${(remaining)} until expanded)`
+							: `Showing all ${lastCityRows.length} cities`;
+
+						els.cityShowMoreBtn.style.display = (lastCityRows.length > cityTableLimit) ? '' : 'none';
+						els.cityShowLessBtn.style.display = (cityTableLimit > 15 && lastCityRows.length > 15) ? '' : 'none';
+					}
+
+					function render(rows, locRows, cityRows, countryRows, meta){
+						if (meta && meta.company_name) setCompanyTitle(meta.company_name);
+						lastUsers = (meta && Array.isArray(meta.users)) ? meta.users : [];
+				lastRows = rows || [];
+			lastLocRows = locRows || [];
+			lastCityRows = cityRows || [];
+			lastCountryRows = countryRows || [];
+						// Country-wise Summary section removed.
+						// IMPORTANT: Total employees should reflect the full tenant count returned by the API.
+						// Summing department rows can undercount because "(Unassigned)" is excluded in the payload.
+						const total = (meta && Number.isFinite(Number(meta.total_employees)))
+							? Number(meta.total_employees)
+							: lastRows.reduce((a, r) => a + (r.count || 0), 0);
+				const depts = lastRows.filter(r => (r.department || '').trim() && r.department !== '(Unassigned)').length;
+			const locTotal = lastLocRows.reduce((a, r) => a + (r.count || 0), 0);
+			const locs = lastLocRows.filter(r => (r.location || '').trim() && r.location !== '(Unassigned)').length;
+			const cityTotal = lastCityRows.reduce((a, r) => a + (r.count || 0), 0);
+			const countries = lastCountryRows.filter(r => (r.country || '').trim() && r.country !== '(Unassigned)').length;
+			const cities = lastCityRows.filter(r => (r.city || '').trim() && r.city !== '(Unassigned)').length;
+
+				els.kTotal.textContent = String(total || 0);
+				els.kLocations.textContent = String(locs || 0);
+				els.kDepartments.textContent = String(depts || 0);
+				els.kCountries.textContent = String(countries || 0);
+				els.kCities.textContent = String(cities || 0);
+
+						// Table (limited by default)
+						tableLimit = 15;
+						renderTable();
+						locTableLimit = 15;
+						renderLocTable();
+						cityTableLimit = 15;
+						renderCityTable();
+
+						// Charts
+						const barRows = lastRows.filter(r => r.department !== '(Unassigned)').slice(0, 25);
+						const barLabels = barRows.map(r => r.department);
+						const barData = barRows.map(r => r.count);
+
+								// Doughnut should include all departments (one slice per department)
+						const allRows = lastRows.filter(r => r.department !== '(Unassigned)');
+						const donutLabelsRaw = allRows.map(r => r.department);
+						const donutDataRaw = allRows.map(r => r.count);
+
+								const donutLabels = donutLabelsRaw;
+								const donutData = donutDataRaw;
+
+						if (els.note1) els.note1.textContent = `${barRows.length} shown / ${lastRows.length} total depts`;
+						if (els.note2) els.note2.textContent = `Top departments share`;
+						if (els.locNote1) els.locNote1.textContent = `${Math.min(15, lastLocRows.filter(r => r.location !== '(Unassigned)').length)} shown / ${lastLocRows.length} total locations`;
+						if (els.cityNote1) els.cityNote1.textContent = `${Math.min(25, lastCityRows.filter(r => r.city !== '(Unassigned)').length)} shown / ${lastCityRows.length} total cities`;
+						
+
+						// Cool palette (blue/teal/purple)
+						const cool = [
+							'rgba(56, 189, 248, 0.85)',  // sky
+							'rgba(34, 211, 238, 0.85)',  // cyan
+							'rgba(45, 212, 191, 0.85)',  // teal
+							'rgba(99, 102, 241, 0.85)',  // indigo
+							'rgba(139, 92, 246, 0.85)',  // violet
+							'rgba(168, 85, 247, 0.85)',  // purple
+							'rgba(59, 130, 246, 0.85)',  // blue
+							'rgba(20, 184, 166, 0.85)',  // teal 2
+							'rgba(14, 165, 233, 0.85)',  // light blue
+							'rgba(124, 58, 237, 0.85)',  // deep violet
+							'rgba(6, 182, 212, 0.85)',   // cyan 2
+							'rgba(129, 140, 248, 0.85)', // periwinkle
+						];
+						const pick = (i) => cool[i % cool.length];
+						const barColors = barLabels.map((_, i) => pick(i));
+						const donutColors = donutLabels.map((_, i) => pick(i));
+
+				if (barChart) barChart.destroy();
+						const cTheme = getThemeChartColors();
+						barChart = new Chart(document.getElementById('barChart'), {
+					type: 'bar',
+							data: { labels: barLabels, datasets: [{ label: 'Employees', data: barData, backgroundColor: barColors, borderColor: 'rgba(255,255,255,.25)', borderWidth: 1 }] },
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						plugins: { legend: { display: false } },
+						scales: {
+							x: { ticks: { color: cTheme.tick }, grid: { color: cTheme.grid } },
+							y: { ticks: { color: cTheme.tick }, grid: { color: cTheme.grid } }
+						}
+					}
+				});
+
+						// Share (%) card removed; keeping share bars helper for KPI modal use only.
+
+						// Location: single horizontal % bar chart
+						const locRowsTop = lastLocRows.filter(r => r.location !== '(Unassigned)').slice(0, 15);
+						const locLabels = locRowsTop.map(r => r.location);
+						const locCounts = locRowsTop.map(r => Number(r.count || 0));
+						const locPcts = locCounts.map(v => (locTotal ? (v * 100) / locTotal : 0));
+						const locBarColors = locLabels.map((_, i) => pick(i + 2));
+
+						if (locPctBarChart) locPctBarChart.destroy();
+						locPctBarChart = new Chart(document.getElementById('locPctBarChart'), {
+							type: 'bar',
+							data: {
+								labels: locLabels,
+								datasets: [{
+									label: 'Share %',
+									data: locPcts,
+									backgroundColor: locBarColors,
+									borderColor: 'rgba(255,255,255,.25)',
+									borderWidth: 1,
+									borderRadius: 8,
+									barThickness: 16,
+								}]
+							},
+							options: {
+								indexAxis: 'y',
+								responsive: true,
+								maintainAspectRatio: false,
+								plugins: {
+									legend: { display: false },
+									tooltip: {
+										callbacks: {
+											label: (ctx) => {
+												const i = ctx.dataIndex;
+												const pct = Number(ctx.parsed.x || 0);
+												const count = locCounts[i] ?? 0;
+												return ` ${count} employees (${pct.toFixed(1)}%)`;
+											}
+										}
+									}
+								},
+								scales: {
+									x: {
+									beginAtZero: true,
+									max: 10,
+									ticks: {
+										color: cTheme.tick,
+										callback: (v) => `${v}%`,
+									},
+									grid: { color: cTheme.grid }
+								},
+									y: {
+									ticks: { color: cTheme.tickStrong },
+									grid: { display: false }
+								}
+							}
+						}
+						});
+
+						// City: change to a different chart type (doughnut)
+						const cityRowsTop = lastCityRows.filter(r => r.city !== '(Unassigned)').slice(0, 25);
+						const cityLabels = cityRowsTop.map(r => r.city);
+						const cityCounts = cityRowsTop.map(r => Number(r.count || 0));
+						const cityColors = cityLabels.map((_, i) => pick(i + 4));
+						const cityAllRows = lastCityRows.filter(r => r.city !== '(Unassigned)');
+
+						if (cityDonutChart) cityDonutChart.destroy();
+						cityDonutChart = new Chart(document.getElementById('cityDonutChart'), {
+							type: 'doughnut',
+							data: {
+								labels: cityLabels,
+								datasets: [{
+									data: cityCounts,
+									backgroundColor: cityColors,
+									borderColor: 'rgba(255,255,255,.18)',
+									borderWidth: 1,
+									hoverOffset: 8,
+								}]
+							},
+							options: {
+								responsive: true,
+								maintainAspectRatio: false,
+								cutout: '62%',
+								plugins: {
+									legend: {
+										position: 'right',
+										labels: { color: cTheme.legend, boxWidth: 10, boxHeight: 10 }
+									},
+									tooltip: {
+										callbacks: {
+											label: (ctx) => {
+												const v = Number(ctx.parsed || 0);
+												const pct = cityTotal ? (v * 100) / cityTotal : 0;
+												return ` ${ctx.label}: ${v} (${pct.toFixed(1)}%)`;
+											}
+										}
+									}
+								}
+							}
+						});
+
+						// Country: world map highlight
+						renderWorldMap(lastCountryRows);
+			}
+
+			function openKpiModal(kind){
+				if (!lastPayload) return;
+				// Prevent background scroll/jump
+				document.body.style.overflow = 'hidden';
+				const map = {
+					total: { title: 'Total employees', rows: [{ name: 'All employees', count: Number(lastPayload.total_employees || 0) }], nameKey: 'name', total: Number(lastPayload.total_employees || 0) },
+					departments: { title: 'Departments', rows: lastRows.map(r => ({ name: r.department, count: r.count })), nameKey: 'name', total: lastRows.reduce((a,r)=>a+(r.count||0),0) },
+					locations: { title: 'Locations', rows: lastLocRows.map(r => ({ name: r.location, count: r.count })), nameKey: 'name', total: lastLocRows.reduce((a,r)=>a+(r.count||0),0) },
+					cities: { title: 'Cities', rows: lastCityRows.map(r => ({ name: r.city, count: r.count })), nameKey: 'name', total: lastCityRows.reduce((a,r)=>a+(r.count||0),0) },
+					countries: { title: 'Countries', rows: lastCountryRows.map(r => ({ name: r.country, count: r.count })), nameKey: 'name', total: lastCountryRows.reduce((a,r)=>a+(r.count||0),0) },
+				};
+				const cfg = map[kind];
+				if (!cfg) return;
+				modalState = { kind, rows: cfg.rows || [], nameKey: cfg.nameKey || 'name', total: Number(cfg.total || 0) };
+				els.kpiModalTitle.textContent = cfg.title;
+				els.kpiModalSub.textContent = `${(cfg.rows || []).length} items`;
+				els.kpiModalSearch.value = '';
+				renderModalRows();
+				els.kpiModal.classList.add('show');
+				els.kpiModal.setAttribute('aria-hidden','false');
+				setTimeout(() => els.kpiModalSearch.focus(), 0);
+			}
+
+			function closeKpiModal(){
+				els.kpiModal.classList.remove('show');
+				els.kpiModal.setAttribute('aria-hidden','true');
+				document.body.style.overflow = '';
+			}
+
+			function renderModalRows(){
+				const q = (els.kpiModalSearch.value || '').trim().toLowerCase();
+				const rows = (modalState.rows || [])
+					.filter(r => !q || String(r.name || '').toLowerCase().includes(q))
+					.sort((a,b) => (b.count||0) - (a.count||0) || String(a.name||'').localeCompare(String(b.name||'')));
+
+				els.kpiModalRows.innerHTML = '';
+				for (const r of rows) {
+					const total = modalState.total || rows.reduce((a,x)=>a+(x.count||0),0);
+					const share = total ? (Number(r.count||0) * 100) / total : 0;
+					const displayName = (modalState.kind === 'countries') ? normalizeCountryName(r.name) : String(r.name || '');
+					const row = document.createElement('div');
+					row.className = 'modalGrid modalRow';
+					row.innerHTML = `
+						<div>${String(displayName || '')}</div>
+						<div class="right mono">${Number(r.count || 0)}</div>
+						<div class="right mono">${fmtPct(share)}</div>
+					`;
+					els.kpiModalRows.appendChild(row);
+				}
+				els.kpiModalSub.textContent = `${rows.length} items`;
+			}
+
+			function downloadModalCsv(){
+				const q = (els.kpiModalSearch.value || '').trim().toLowerCase();
+				const rows = (modalState.rows || [])
+					.filter(r => !q || String(r.name || '').toLowerCase().includes(q))
+					.sort((a,b) => (b.count||0) - (a.count||0) || String(a.name||'').localeCompare(String(b.name||'')));
+				const total = modalState.total || rows.reduce((a,x)=>a+(x.count||0),0);
+				const header = ['Name','Employees','Share'];
+				const lines = [header.join(',')];
+				for (const r of rows) {
+					const share = total ? ((Number(r.count||0) * 100) / total) : 0;
+					const nm = String(r.name || '').replace(/"/g,'""');
+					lines.push(`"${nm}",${Number(r.count||0)},${fmtPct(share)}`);
+				}
+				const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
+				const a = document.createElement('a');
+				a.href = URL.createObjectURL(blob);
+				a.download = `${(modalState.kind || 'items')}_details.csv`;
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+			}
+
+			// Country-wise Summary section removed.
+
+			// KPI click handlers
+			function wireKpis(){
+				const cards = Array.from(document.querySelectorAll('.kpi .box.kpiLink[data-kpi]'));
+				for (const c of cards) {
+					const kind = c.getAttribute('data-kpi');
+					c.addEventListener('click', () => openKpiModal(kind));
+					c.addEventListener('keydown', (e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							openKpiModal(kind);
+						}
+					});
+				}
+
+				els.kpiModalClose.addEventListener('click', closeKpiModal);
+				els.kpiModal.addEventListener('click', (e) => {
+					if (e.target === els.kpiModal) closeKpiModal();
+				});
+				document.addEventListener('keydown', (e) => {
+					if (e.key === 'Escape' && els.kpiModal.classList.contains('show')) closeKpiModal();
+				});
+				els.kpiModalSearch.addEventListener('input', renderModalRows);
+				els.kpiModalCsv.addEventListener('click', downloadModalCsv);
+			}
+			wireKpis();
+
+			function downloadCsv(){
+				const header = ['Department','Employees','Share'];
+				const total = lastRows.reduce((a, r) => a + (r.count || 0), 0);
+				const lines = [header.join(',')];
+				for (const r of lastRows) {
+					const share = total ? ((r.count * 100) / total) : 0;
+					const dep = String(r.department).replace(/"/g,'""');
+					lines.push(`"${dep}",${r.count},${fmtPct(share)}`);
+				}
+				const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
+				const a = document.createElement('a');
+				a.href = URL.createObjectURL(blob);
+				a.download = 'department_insights.csv';
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+			}
+
+			function downloadLocCsv(){
+				const header = ['Location','Employees','Share'];
+				const total = lastLocRows.reduce((a, r) => a + (r.count || 0), 0);
+				const lines = [header.join(',')];
+				for (const r of lastLocRows) {
+					const share = total ? ((r.count * 100) / total) : 0;
+					const loc = String(r.location).replace(/"/g,'""');
+					lines.push(`"${loc}",${r.count},${fmtPct(share)}`);
+				}
+				const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
+				const a = document.createElement('a');
+				a.href = URL.createObjectURL(blob);
+				a.download = 'location_insights.csv';
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+			}
+
+			function downloadCityCsv(){
+				const header = ['City','Employees','Share'];
+				const total = lastCityRows.reduce((a, r) => a + (r.count || 0), 0);
+				const lines = [header.join(',')];
+				for (const r of lastCityRows) {
+					const share = total ? ((r.count * 100) / total) : 0;
+					const city = String(r.city).replace(/"/g,'""');
+					lines.push(`"${city}",${r.count},${fmtPct(share)}`);
+				}
+				const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
+				const a = document.createElement('a');
+				a.href = URL.createObjectURL(blob);
+				a.download = 'city_insights.csv';
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+			}
+
+			els.exportCsv.addEventListener('click', downloadCsv);
+			els.exportLocCsv.addEventListener('click', downloadLocCsv);
+			els.exportCityCsv.addEventListener('click', downloadCityCsv);
+					els.showMoreBtn.addEventListener('click', () => {
+						tableLimit = Math.min(lastRows.length, tableLimit + 25);
+						renderTable();
+					});
+					els.showLessBtn.addEventListener('click', () => {
+						tableLimit = 15;
+						renderTable();
+					});
+					els.locShowMoreBtn.addEventListener('click', () => {
+						locTableLimit = Math.min(lastLocRows.length, locTableLimit + 25);
+						renderLocTable();
+					});
+					els.locShowLessBtn.addEventListener('click', () => {
+						locTableLimit = 15;
+						renderLocTable();
+					});
+					els.cityShowMoreBtn.addEventListener('click', () => {
+						cityTableLimit = Math.min(lastCityRows.length, cityTableLimit + 25);
+						renderCityTable();
+					});
+					els.cityShowLessBtn.addEventListener('click', () => {
+						cityTableLimit = 15;
+						renderCityTable();
+					});
+
+					async function load(bust){
+				clearStatus();
+				showStatus('Loading insights from Graph...', '');
+						const url = bust ? `{{ url_for('insights_data') }}?bust=1` : `{{ url_for('insights_data') }}`;
+						const res = await fetch(url);
+				const data = await res.json();
+				if (!data.ok) {
+					showStatus(data.error || 'Failed to load insights', 'error');
+					return;
+				}
+				lastPayload = data;
+				lastUsers = Array.isArray(data.users) ? data.users : [];
+				updateFilterOptionsFromUsers(lastUsers);
+				refreshCascadingFilterOptions('init');
+				// Apply filters (default: none) and render filtered view (initially identical to full view)
+				applyFiltersAndRender();
+				showStatus('Loaded.', 'ok');
+				setTimeout(clearStatus, 1200);
+			}
+
+					els.refreshBtn.addEventListener('click', () => load(true).catch(e => showStatus(String(e), 'error')));
+					load(false).catch(e => showStatus(String(e), 'error'));
+		})();
+	</script>
+</body>
+</html>
+
